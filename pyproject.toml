@@ -1,0 +1,71 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=66.1.0"]
+
+[project]
+name = "raw_sales_etl"
+version = "0.0.1"
+description = "Prepare raw sales data for forecasting"
+readme = "README.md"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "mypy==0.991",
+    "pre-commit==3.0.3",
+    "pylint==2.16.1",
+    "tox==4.4.4",
+]
+test = [
+    "pytest==7.2.1",
+]
+
+[project.scripts]
+main = "raw_sales_etl.main:main"
+
+[tool]
+
+[tool.black]
+line-length = 88
+
+[tool.mypy]
+strict = true
+
+[tool.pylint]
+bad-names = ["bar", "baz", "count", "data", "foo", "info", "temp", "tmp"]
+bad-names-rgxs = [
+    ".*[C c]heck(er)?.*",
+    ".*[G g]ett(er)?",
+    ".*[H h]elp(er)?.*",
+    ".*[I]nfo(rmation)?.*",
+    ".*[M m]ake(r)?.*",
+    ".*[P p]rocess(er)?.*",
+    ".*[U u]til(s)?.*",
+    ".*[V v]alidate(r)?.*",
+    ".*[V v]erif((y)|(ier)).*",
+    "my_.*",
+]
+disable = ["C0114", "C0115", "C0116"]
+good-names = ["ex", "fp", "i", "j", "k", "test_utils"]
+max-line-length = 88
+
+[tool.setuptools.package-data]
+raw_sales_etl = ["py.typed"]
+
+[tool.tomlsort]
+all = false
+check = false
+ignore_case = true
+in_place = true
+no_block_comments = false
+no_comments = false
+no_footer_comments = false
+no_header_comments = false
+no_inline_comments = false
+no_sort_tables = true
+sort_inline_arrays = true
+sort_inline_tables = true
+sort_table_keys = false
+spaces_before_inline_comment = 2
+spaces_indent_inline_array = 4
+trailing_comma_inline_array = true
