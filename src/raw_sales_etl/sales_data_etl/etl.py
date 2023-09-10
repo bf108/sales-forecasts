@@ -99,6 +99,24 @@ def join_hols_to_sales_history_calendar(
     return df_output
 
 
+def determine_day(holiday_flag: bool, lead_up_flag: bool) -> str:
+    if holiday_flag:
+        return "holiday"
+    if lead_up_flag:
+        return "lead_up"
+    return "normal"
+
+
+def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_input.loc[df_input["flag_holiday"].isna(), "flag_holiday"] = False
+    df_input["flag_lead_up_holiday"] = df_input["flag_holiday"].shift(periods=-1)
+    df_input["lead_up_holiday_name"] = df_input["holiday_name"].shift(periods=-1)
+    df_input["day_type"] = df_input.apply(
+        lambda x: determine_day(x["flag_holiday"], x["flag_lead_up_holiday"]), axis=1
+    )
+    return df_input
+
+
 def get_last_5_weeks_sales_per_day(
     df_sales: pd.DataFrame, sales_col: str
 ) -> pd.DataFrame:
