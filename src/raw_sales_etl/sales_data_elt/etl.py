@@ -30,3 +30,7 @@ SALES_DATE_COLUMNS = ["ds"]
 
 def read_sales_from_disk(file_path: Path) -> pd.DataFrame:
     return pd.read_csv(file_path, dtype=SALES_DTYPES, parse_dates=SALES_DATE_COLUMNS)
+
+
+def read_meta_from_disk(file_path: Path) -> pd.DataFrame:
+    return pd.read_csv(file_path, usecols=META_COLUMNS, dtype=META_DTYPES)
