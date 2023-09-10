@@ -42,10 +42,15 @@ def merge_sales_meta(
     df_meta: pd.DataFrame,
     meta_unique_id: str,
 ) -> pd.DataFrame:
-    return pd.merge(
-        df_sales,
-        df_meta,
-        how="inner",
-        left_on=sales_unique_id,
-        right_on=meta_unique_id,
-    ).drop(columns=[meta_unique_id])
+    return (
+        pd.merge(
+            df_sales,
+            df_meta,
+            how="inner",
+            left_on=sales_unique_id,
+            right_on=meta_unique_id,
+        )
+        .drop(columns=[meta_unique_id])
+        .rename(columns={"ds": "date"})
+        .set_index("ds")
+    )
