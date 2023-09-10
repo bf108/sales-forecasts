@@ -62,3 +62,8 @@ def get_unique_business_ids(
 ) -> list[str]:
     unique_id = unique_id if unique_id else "unique_id"
     return list(df_sales[unique_id].unique())
+
+
+def zero_negative_sales(dfs: pd.DataFrame, sales_col: str) -> pd.DataFrame:
+    dfs.loc[dfs[sales_col] < 0, f"{sales_col}_adj"] = 0
+    return dfs
