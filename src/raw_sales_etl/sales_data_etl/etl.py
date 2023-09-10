@@ -107,3 +107,12 @@ def get_last_5_weeks_sales_per_day(
     df_sales["sales_28_days_prior"] = df_sales[sales_col].shift(28)
     df_sales["sales_35_days_prior"] = df_sales[sales_col].shift(35)
     return df_sales
+
+
+def flag_14_out_of_28_days_sales_history(
+    df_sales: pd.DataFrame, sales_col: str
+) -> pd.DataFrame:
+    df_sales["fc_14_in_28_days"] = (
+        ~df_sales[sales_col].rolling(window=28, min_periods=14).sum().isna()
+    )
+    return df_sales
