@@ -120,3 +120,24 @@ def join_holidays_df_to_calendar_df(
             f"holiday_name_{country}"
         ].shift(periods=-1)
     return df_new
+
+
+def create_holidays_df(
+    start_dt: date, end_dt: date, countries: list[str], years: list[int]
+) -> pd.DataFrame:
+    """
+    Return pd.DataFrame:
+    index: datetime from start_dt -> end_dt
+    Expect columns of this form for each country
+    columns: holiday_name_{country}, holiday_type_{country}, holiday_details_{country},
+     flag_holiday_{country}, flag_lead_up_{country}, lead_up_holiday_name_{country}
+
+    :param start_dt: start date of period
+    :param end_dt: start date of period
+    :param countries: list of countries for which to collect holiday data
+    :param years: list of years to collect holiday data for
+    :return: pd.DataFrame
+    """
+    df_calendar = create_calendar_df(start_dt, end_dt)
+    df_holidays = create_combined_holidays_df(countries, years)
+    return join_holidays_df_to_calendar_df(df_calendar, df_holidays)
