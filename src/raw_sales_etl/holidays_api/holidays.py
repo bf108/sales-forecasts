@@ -84,3 +84,15 @@ def join_list_of_df(dfs: list[pd.DataFrame], how: str = "outer") -> pd.DataFrame
         "dfs[0]"
         + "".join([f".join(dfs[{i+1}], how='{how}')" for i, _ in enumerate(dfs[1:])])
     )
+
+
+def create_combined_holidays_df(countries: list[str], years: list[int]) -> pd.DataFrame:
+    holidays_dfs = []
+    for country in countries:
+        tmp_dfs = []
+        for year in years:
+            tmp_dfs.append(create_country_holidays_df(country, year))
+        tmp_df = pd.concat(tmp_dfs, axis=0)
+        holidays_dfs.append(tmp_df)
+    df_combined = join_list_of_df(holidays_dfs)
+    return df_combined[~df_combined.index.duplicated(keep="first")]
