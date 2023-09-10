@@ -1,5 +1,4 @@
 from ast import literal_eval
-from datetime import date
 from datetime import datetime
 
 import pandas as pd
@@ -17,15 +16,6 @@ HOLIDAY_GRANULARITY = {
     13759295: "All holidays/observances/religious events",
 }
 CALENDAR_META = {"uk": 4194331, "ireland": 281, "malta": 25}
-
-
-def create_calendar_df(start_dt: date, end_dt: date) -> pd.DataFrame:
-    df_calendar = pd.DataFrame(pd.date_range(start_dt, end_dt, freq="d")).rename(
-        columns={0: "date"}
-    )
-    df_calendar.loc[:, "dummy"] = "calendar"
-    df_calendar.set_index("date", inplace=True)
-    return df_calendar
 
 
 def convert_ms_unix_timestamp_to_datatime(unix_timestamp: str) -> datetime:
@@ -131,24 +121,3 @@ def join_holidays_df_to_calendar_df(
             f"holiday_name_{country}"
         ].shift(periods=-1)
     return df_new
-
-
-def create_holidays_df(
-    start_dt: date, end_dt: date, countries: list[str], years: list[int]
-) -> pd.DataFrame:
-    """
-    Return pd.DataFrame:
-    index: datetime from start_dt -> end_dt
-    Expect columns of this form for each country
-    columns: holiday_name_{country}, holiday_type_{country}, holiday_details_{country},
-     flag_holiday_{country}, flag_lead_up_{country}, lead_up_holiday_name_{country}
-
-    :param start_dt: start date of period
-    :param end_dt: start date of period
-    :param countries: list of countries for which to collect holiday data
-    :param years: list of years to collect holiday data for
-    :return: pd.DataFrame
-    """
-    df_calendar = create_calendar_df(start_dt, end_dt)
-    df_holidays = create_combined_holidays_df(countries, years)
-    return join_holidays_df_to_calendar_df(df_calendar, df_holidays)
