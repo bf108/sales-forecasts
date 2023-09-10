@@ -77,3 +77,9 @@ def create_calendar_df(start_dt: date, end_dt: date) -> pd.DataFrame:
     df_calendar.loc[:, "dummy"] = "calendar"
     df_calendar.set_index("date", inplace=True)
     return df_calendar
+
+
+def join_calendar_to_sales_history(
+    df_sales: pd.DataFrame, df_calendar: pd.DataFrame
+) -> pd.DataFrame:
+    return df_calendar.join(df_sales, how="left").drop(columns=["dummy"])
