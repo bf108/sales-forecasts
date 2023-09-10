@@ -156,3 +156,57 @@ def create_7_day_forecast_columns(df_input: pd.DataFrame) -> pd.DataFrame:
     # Set forecast to nan when less than 14 days of sales recorded in last 28 days
     df_input.loc[df_input["fc_14_in_28_days"] == False, "7_day_forecast"] = np.nan
     return df_input
+
+
+def create_14_day_forecast_columns(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_input["input_14_day_forecast"] = df_input[
+        [
+            "sales_14_days_prior",
+            "sales_21_days_prior",
+            "sales_28_days_prior",
+            "sales_35_days_prior",
+        ]
+    ].mean(axis=1)
+
+    df_input["14_day_forecast_prelim"] = df_input[
+        [
+            "input_14_day_forecast",
+            "sales_14_days_prior",
+            "sales_21_days_prior",
+            "sales_28_days_prior",
+        ]
+    ].mean(axis=1)
+
+    # Set forecast to nan when less than 14 days of sales recorded in last 28 days
+    df_input["14_day_forecast"] = df_input["14_day_forecast_prelim"]
+    df_input.loc[df_input["fc_14_in_28_days"] == False, "14_day_forecast"] = np.nan
+    return df_input
+
+
+def create_eval_metric_columns(
+    df_input: pd.DataFrame, sales_adj_col: str
+) -> pd.DataFrame:
+    df_input[sales_adj_col] = df_input[sales_adj_col] + 0.01
+    df_input["7_day_forecast"] = df_input["7_day_forecast"] + 0.01
+    df_input["14_day_forecast"] = df_input["14_day_forecast"] + 0.01
+
+    df_input["mape_7_day_forecast"] = abs(
+        (df_input[sales_adj_col] - df_input["7_day_forecast"]) / df_input[sales_adj_col]
+    )
+    df_input["mape_14_day_forecast"] = abs(
+        (df_input[sales_adj_col] - df_input["14_day_forecast"])
+        / df_input[sales_adj_col]
+    )
+
+    df_input["diff"] = df_input[sales_adj_col] - df_input["7_day_forecast"]
+
+    # Only compare values where business was open: sales are > 1euro / 1 sterling etc
+    df_input["diff_open"] = df_input["diff"]
+    df_input.loc[df_input[sales_adj_col] < 1, "diff_open"] = 0
+    df_input["diff_perc_real"] = 100 * (df_input["diff_open"]) / df_input[sales_adj_col]
+    df_input["diff_perc"] = 100 * abs(df_input["diff_open"]) / df_input[sales_adj_col]
+
+    # Change this to be relative to previous sales revenue -
+    df_input["revenue_below_100"] = df_input[sales_adj_col] < 100
+
+    return df_input
