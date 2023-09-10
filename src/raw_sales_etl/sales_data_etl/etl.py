@@ -96,3 +96,14 @@ def join_hols_to_sales_history_calendar(
         .reset_index()
         .set_index("date")
     )
+
+
+def get_last_5_weeks_sales_per_day(
+    df_sales: pd.DataFrame, sales_col: str
+) -> pd.DataFrame:
+    df_sales["sales_7_days_prior"] = df_sales[sales_col].shift(7)
+    df_sales["sales_14_days_prior"] = df_sales[sales_col].shift(14)
+    df_sales["sales_21_days_prior"] = df_sales[sales_col].shift(21)
+    df_sales["sales_28_days_prior"] = df_sales[sales_col].shift(28)
+    df_sales["sales_35_days_prior"] = df_sales[sales_col].shift(35)
+    return df_sales
