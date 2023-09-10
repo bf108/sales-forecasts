@@ -39,3 +39,13 @@ def get_holiday_granularity_options_for_country(
     soup = bs(resp.content, "html.parser")
     options = soup.find("select", id="hol").find_all("option")
     return {int(opt["value"]): opt.text for opt in options[:-1]}
+
+
+def get_table_headings(soup: bs) -> list[str]:
+    table_headings = [
+        h.text.lower()
+        for h in soup.find(id="holidays-table").find("thead").find("tr").find_all("th")
+    ]
+    # Replace empty field with day of week (dow)
+    table_headings[1] = "dow"
+    return table_headings
