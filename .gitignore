@@ -161,3 +161,5 @@ cython_debug/
 # Extras
 .DS_Store
 .github/
+*.ipynb
+src/raw_sales_etl/data/
