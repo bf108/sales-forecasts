@@ -73,7 +73,7 @@ def create_country_holidays_df(country: str, year: int) -> pd.DataFrame:
     df_holiday_table.loc[:, "country"] = country
     df_holiday_table.drop(columns=["holiday_dow"], inplace=True)
     df_holiday_table.set_index("date", inplace=True)
-    return df_holiday_table
+    return df_holiday_table[~df_holiday_table.index.duplicated()]
 
 
 def join_list_of_df(dfs: list[pd.DataFrame], how: str = "outer") -> pd.DataFrame:
