@@ -90,12 +90,13 @@ def join_calendar_to_sales_history(
 def join_hols_to_sales_history_calendar(
     df_sales: pd.DataFrame, df_hols: pd.DataFrame
 ) -> pd.DataFrame:
-    return (
+    df_output = (
         df_sales.set_index("country", append=True)
         .join(df_hols.set_index("country", append=True), how="left")
         .reset_index()
         .set_index("date")
     )
+    return df_output
 
 
 def get_last_5_weeks_sales_per_day(
