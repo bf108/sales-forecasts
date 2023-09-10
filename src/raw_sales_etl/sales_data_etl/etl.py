@@ -44,7 +44,7 @@ def merge_sales_meta(
     df_meta: pd.DataFrame,
     meta_unique_id: str,
 ) -> pd.DataFrame:
-    return (
+    df_comb = (
         pd.merge(
             df_sales,
             df_meta,
@@ -56,6 +56,8 @@ def merge_sales_meta(
         .rename(columns={"ds": "date"})
         .set_index("date")
     )
+    df_comb.loc[:, "country"] = df_comb.country.str.lower()
+    return df_comb
 
 
 def get_unique_business_ids(
