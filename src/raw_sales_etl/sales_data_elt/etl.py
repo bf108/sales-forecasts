@@ -34,3 +34,18 @@ def read_sales_from_disk(file_path: Path) -> pd.DataFrame:
 
 def read_meta_from_disk(file_path: Path) -> pd.DataFrame:
     return pd.read_csv(file_path, usecols=META_COLUMNS, dtype=META_DTYPES)
+
+
+def merge_sales_meta(
+    df_sales: pd.DataFrame,
+    sales_unique_id: str,
+    df_meta: pd.DataFrame,
+    meta_unique_id: str,
+) -> pd.DataFrame:
+    return pd.merge(
+        df_sales,
+        df_meta,
+        how="inner",
+        left_on=sales_unique_id,
+        right_on=meta_unique_id,
+    ).drop(columns=[meta_unique_id])
