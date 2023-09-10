@@ -5,8 +5,18 @@ from datetime import datetime
 import pandas as pd
 import requests  # type: ignore
 from bs4 import BeautifulSoup as bs
-from holidays_config import CALENDAR_META  # pylint: disable=import-error
-from holidays_config import CALENDAR_URL  # pylint: disable=import-error
+
+CALENDAR_URL = "https://www.timeanddate.com/holidays"
+HOLIDAY_GRANULARITY = {
+    1: "Official holidays",
+    9: "Official holidays and non-working days",
+    25: "Holidays and some observances",
+    4194329: "Holidays (incl. some local) and observances",
+    4194331: "Holidays (incl. all local) and observances",
+    313: "Holidays and many observances",
+    13759295: "All holidays/observances/religious events",
+}
+CALENDAR_META = {"uk": 4194331, "ireland": 281, "malta": 25}
 
 
 def create_calendar_df(start_dt: date, end_dt: date) -> pd.DataFrame:
