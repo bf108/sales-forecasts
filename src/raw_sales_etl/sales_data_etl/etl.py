@@ -2,6 +2,7 @@ from datetime import date
 from pathlib import Path
 from typing import Union
 
+import numpy as np
 import pandas as pd
 
 META_COLUMNS = [
@@ -139,3 +140,19 @@ def flag_14_out_of_28_days_sales_history(
         ~df_sales[sales_col].rolling(window=28, min_periods=14).sum().isna()
     )
     return df_sales
+
+
+def create_7_day_forecast_columns(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_input["7_day_forecast_prelim"] = df_input[
+        [
+            "sales_7_days_prior",
+            "sales_14_days_prior",
+            "sales_21_days_prior",
+            "sales_28_days_prior",
+        ]
+    ].mean(axis=1)
+
+    df_input["7_day_forecast"] = df_input["7_day_forecast_prelim"]
+    # Set forecast to nan when less than 14 days of sales recorded in last 28 days
+    df_input.loc[df_input["fc_14_in_28_days"] == False, "7_day_forecast"] = np.nan
+    return df_input
