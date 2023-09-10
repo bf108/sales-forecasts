@@ -96,3 +96,27 @@ def create_combined_holidays_df(countries: list[str], years: list[int]) -> pd.Da
         holidays_dfs.append(tmp_df)
     df_combined = join_list_of_df(holidays_dfs)
     return df_combined[~df_combined.index.duplicated(keep="first")]
+
+
+def join_holidays_df_to_calendar_df(
+    df_calendar: pd.DataFrame, df_holidays: pd.DataFrame
+) -> pd.DataFrame:
+    df_new = df_calendar.join(df_holidays, how="left").drop(columns=["dummy"])
+    # Check correct number of days after join
+    assert (
+        df_new.shape[0] == df_calendar.shape[0]
+    ), f"df_new shape {df_new.shape[0]} df_calendar shape {df_calendar.shape[0]}"
+
+    # Check no duplicate indices (dates)
+    assert df_new.index.duplicated().any() is False
+
+    hol_flag_cols = [col for col in df_new if col.startswith("flag_")]
+    df_new.loc[:, hol_flag_cols] = df_new[hol_flag_cols].fillna(False)
+
+    for col in hol_flag_cols:
+        country = col.split("_")[-1]
+        df_new[f"flag_lead_up_{country}"] = df_new[col].shift(periods=-1)
+        df_new[f"lead_up_holiday_name_{country}"] = df_new[
+            f"holiday_name_{country}"
+        ].shift(periods=-1)
+    return df_new
