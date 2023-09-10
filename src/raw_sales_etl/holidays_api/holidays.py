@@ -1,3 +1,4 @@
+from ast import literal_eval
 from datetime import date
 from datetime import datetime
 
@@ -72,3 +73,14 @@ def create_country_holidays_df(country: str, year: int) -> pd.DataFrame:
     df_holiday_table.drop(columns=[f"holiday_dow_{country}"], inplace=True)
     df_holiday_table.set_index("date", inplace=True)
     return df_holiday_table
+
+
+def join_list_of_df(dfs: list[pd.DataFrame], how: str = "outer") -> pd.DataFrame:
+    if len(dfs) == 0:
+        raise ValueError("Empty list of DataFrames Passed")
+    if len(dfs) == 1:
+        return dfs[0]
+    return literal_eval(
+        "dfs[0]"
+        + "".join([f".join(dfs[{i+1}], how='{how}')" for i, _ in enumerate(dfs[1:])])
+    )
