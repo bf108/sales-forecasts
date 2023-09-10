@@ -2,6 +2,8 @@ from datetime import date
 from datetime import datetime
 
 import pandas as pd
+import requests  # type: ignore
+from bs4 import BeautifulSoup as bs
 from holidays_config import CALENDAR_META  # pylint: disable=import-error
 from holidays_config import CALENDAR_URL  # pylint: disable=import-error
 
@@ -27,3 +29,13 @@ def create_url(country: str, year: int) -> str:
         meta = CALENDAR_META[country.lower()]
         return f"{CALENDAR_URL}/{country}/{year}?hol={meta}"
     return f"{CALENDAR_URL}/{country}/{year}"
+
+
+def get_holiday_granularity_options_for_country(
+    country: str, year: int
+) -> dict[int, str]:
+    url = create_url(country, year)
+    resp = requests.get(url, timeout=60)
+    soup = bs(resp.content, "html.parser")
+    options = soup.find("select", id="hol").find_all("option")
+    return {int(opt["value"]): opt.text for opt in options[:-1]}
