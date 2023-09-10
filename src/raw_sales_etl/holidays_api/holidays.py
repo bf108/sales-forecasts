@@ -49,3 +49,26 @@ def get_table_headings(soup: bs) -> list[str]:
     # Replace empty field with day of week (dow)
     table_headings[1] = "dow"
     return table_headings
+
+
+def create_country_holidays_df(country: str, year: int) -> pd.DataFrame:
+    url = create_url(country, year)
+    resp = requests.get(url, timeout=60)
+    soup = bs(resp.content, "html.parser")
+    _table_headings = get_table_headings(soup)
+    table_headings = [f"holiday_{t}_{country}" for t in _table_headings]
+    res = []
+    # Find table of holidays in html
+    # iterate through rows of table and extract content
+    for row in (
+        soup.find(id="holidays-table").find("tbody").find_all("tr", class_="showrow")
+    ):
+        row_dict = {"date": convert_ms_unix_timestamp_to_datatime(row["data-date"])}
+        for value, heading in zip(row.find_all("td"), table_headings[1:]):
+            row_dict[heading] = value.text
+        res.append(row_dict)
+    df_holiday_table = pd.DataFrame(res)
+    df_holiday_table.loc[:, f"flag_holiday_{country}"] = True
+    df_holiday_table.drop(columns=[f"holiday_dow_{country}"], inplace=True)
+    df_holiday_table.set_index("date", inplace=True)
+    return df_holiday_table
