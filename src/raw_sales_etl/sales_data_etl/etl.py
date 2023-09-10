@@ -58,6 +58,7 @@ def merge_sales_meta(
     )
     df_comb.loc[:, "country"] = df_comb.country.str.lower()
     df_comb.loc[:, "operational_flag"] = True
+    df_comb["y"] = df_comb["y"].astype("float")
     return df_comb
 
 
@@ -69,7 +70,9 @@ def get_unique_business_ids(
 
 
 def zero_negative_sales(dfs: pd.DataFrame, sales_col: str) -> pd.DataFrame:
+    dfs.loc[:, f"{sales_col}_adj"] = dfs[sales_col]
     dfs.loc[dfs[sales_col] < 0, f"{sales_col}_adj"] = 0
+    dfs[f"{sales_col}_adj"] = dfs[f"{sales_col}_adj"].astype("float")
     return dfs
 
 
