@@ -57,7 +57,7 @@ def create_country_holidays_df(country: str, year: int) -> pd.DataFrame:
     resp = requests.get(url, timeout=60)
     soup = bs(resp.content, "html.parser")
     _table_headings = get_table_headings(soup)
-    table_headings = [f"holiday_{t}_{country}" for t in _table_headings]
+    table_headings = [f"holiday_{t}" for t in _table_headings]
     res = []
     # Find table of holidays in html
     # iterate through rows of table and extract content
@@ -69,8 +69,9 @@ def create_country_holidays_df(country: str, year: int) -> pd.DataFrame:
             row_dict[heading] = value.text
         res.append(row_dict)
     df_holiday_table = pd.DataFrame(res)
-    df_holiday_table.loc[:, f"flag_holiday_{country}"] = True
-    df_holiday_table.drop(columns=[f"holiday_dow_{country}"], inplace=True)
+    df_holiday_table.loc[:, "flag_holiday"] = True
+    df_holiday_table.loc[:, "country"] = country
+    df_holiday_table.drop(columns=["holiday_dow"], inplace=True)
     df_holiday_table.set_index("date", inplace=True)
     return df_holiday_table
 
@@ -94,8 +95,8 @@ def create_combined_holidays_df(countries: list[str], years: list[int]) -> pd.Da
             tmp_dfs.append(create_country_holidays_df(country, year))
         tmp_df = pd.concat(tmp_dfs, axis=0)
         holidays_dfs.append(tmp_df)
-    df_combined = join_list_of_df(holidays_dfs)
-    return df_combined[~df_combined.index.duplicated(keep="first")]
+    df_combined = pd.concat(holidays_dfs, axis=0)
+    return df_combined
 
 
 def join_holidays_df_to_calendar_df(
