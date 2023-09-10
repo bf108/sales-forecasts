@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Union
 
 import pandas as pd
 
@@ -54,3 +55,10 @@ def merge_sales_meta(
         .rename(columns={"ds": "date"})
         .set_index("ds")
     )
+
+
+def get_unique_business_ids(
+    df_sales: pd.DataFrame, unique_id: Union[str, None] = None
+) -> list[str]:
+    unique_id = unique_id if unique_id else "unique_id"
+    return list(df_sales[unique_id].unique())
