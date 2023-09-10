@@ -85,3 +85,14 @@ def join_calendar_to_sales_history(
     df_sales: pd.DataFrame, df_calendar: pd.DataFrame
 ) -> pd.DataFrame:
     return df_calendar.join(df_sales, how="left").drop(columns=["dummy"])
+
+
+def join_hols_to_sales_history_calendar(
+    df_sales: pd.DataFrame, df_hols: pd.DataFrame
+) -> pd.DataFrame:
+    return (
+        df_sales.set_index("country", append=True)
+        .join(df_hols.set_index("country", append=True), how="left")
+        .reset_index()
+        .set_index("date")
+    )
