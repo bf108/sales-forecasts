@@ -53,7 +53,7 @@ def merge_sales_meta(
         )
         .drop(columns=[meta_unique_id])
         .rename(columns={"ds": "date"})
-        .set_index("ds")
+        .set_index("date")
     )
 
 
