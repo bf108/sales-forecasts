@@ -92,7 +92,8 @@ def join_calendar_to_sales_history(
     df_sales: pd.DataFrame, df_calendar: pd.DataFrame
 ) -> pd.DataFrame:
     df_output = df_calendar.join(df_sales, how="left").drop(columns=["dummy"])
-    df_output['business_id'] = df_sales['unique_id'].unique()[0]
+    df_output["business_id"] = df_sales["unique_id"].unique()[0]
+    df_output["operational_flag"] = df_output["operational_flag"].ffill()
     return df_output
 
 
@@ -188,7 +189,9 @@ def create_14_day_forecast_columns(df_input: pd.DataFrame) -> pd.DataFrame:
 
     # Set forecast to nan when less than 14 days of sales recorded in last 28 days
     df_output["14_day_forecast"] = df_output["14_day_forecast_prelim"]
-    df_output.loc[df_output["fc_14_in_28_days"] == False, "14_day_forecast"] = np.nan
+    df_output.loc[
+        df_output["fc_14_in_28_days"] == False, "14_day_forecast"
+    ] = np.nan
     return df_output
 
 
