@@ -74,6 +74,7 @@ def zero_negative_sales(dfs: pd.DataFrame, sales_col: str) -> pd.DataFrame:
     dfs.loc[:, f"{sales_col}_adj"] = dfs[sales_col]
     dfs.loc[dfs[sales_col] < 0, f"{sales_col}_adj"] = 0
     dfs[f"{sales_col}_adj"] = dfs[f"{sales_col}_adj"].astype("float")
+    dfs[f"{sales_col}_adj"] = dfs[f"{sales_col}_adj"] + 0.01
     return dfs
 
 
@@ -186,10 +187,6 @@ def create_14_day_forecast_columns(df_input: pd.DataFrame) -> pd.DataFrame:
 def create_eval_metric_columns(
     df_input: pd.DataFrame, sales_adj_col: str
 ) -> pd.DataFrame:
-    df_input[sales_adj_col] = df_input[sales_adj_col] + 0.01
-    df_input["7_day_forecast"] = df_input["7_day_forecast"] + 0.01
-    df_input["14_day_forecast"] = df_input["14_day_forecast"] + 0.01
-
     df_input["mape_7_day_forecast"] = abs(
         (df_input[sales_adj_col] - df_input["7_day_forecast"]) / df_input[sales_adj_col]
     )
@@ -197,8 +194,7 @@ def create_eval_metric_columns(
         (df_input[sales_adj_col] - df_input["14_day_forecast"])
         / df_input[sales_adj_col]
     )
-
-    df_input["diff"] = df_input[sales_adj_col] - df_input["7_day_forecast"]
+    df_input["real_diff"] = df_input[sales_adj_col] - df_input["7_day_forecast"]
 
     # Only compare values where business was open: sales are > 1euro / 1 sterling etc
     df_input["diff_open"] = df_input["diff"]
