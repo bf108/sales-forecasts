@@ -70,12 +70,13 @@ def get_unique_business_ids(
     return list(df_sales[unique_id].unique())
 
 
-def zero_negative_sales(dfs: pd.DataFrame, sales_col: str) -> pd.DataFrame:
-    dfs.loc[:, f"{sales_col}_adj"] = dfs[sales_col]
-    dfs.loc[dfs[sales_col] < 0, f"{sales_col}_adj"] = 0
-    dfs[f"{sales_col}_adj"] = dfs[f"{sales_col}_adj"].astype("float")
-    dfs[f"{sales_col}_adj"] = dfs[f"{sales_col}_adj"] + 0.01
-    return dfs
+def zero_negative_sales(df_input: pd.DataFrame, sales_col: str) -> pd.DataFrame:
+    df_output = df_input.copy()
+    df_output.loc[:, f"{sales_col}_adj"] = df_output[sales_col]
+    df_output.loc[df_output[sales_col] < 0, f"{sales_col}_adj"] = 0
+    df_output[f"{sales_col}_adj"] = df_output[f"{sales_col}_adj"].astype("float")
+    df_output[f"{sales_col}_adj"] = df_output[f"{sales_col}_adj"] + 0.01
+    return df_output
 
 
 def create_calendar_df(start_dt: date, end_dt: date) -> pd.DataFrame:
@@ -114,37 +115,41 @@ def determine_day(holiday_flag: bool, lead_up_flag: bool) -> str:
 
 
 def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
-    df_input.loc[df_input["flag_holiday"].isna(), "flag_holiday"] = False
-    df_input["flag_lead_up_holiday"] = df_input["flag_holiday"].shift(periods=-1)
-    df_input["lead_up_holiday_name"] = df_input["holiday_name"].shift(periods=-1)
-    df_input["day_type"] = df_input.apply(
+    df_output = df_input.copy()
+    df_output.loc[df_output["flag_holiday"].isna(), "flag_holiday"] = False
+    df_output["flag_lead_up_holiday"] = df_output["flag_holiday"].shift(periods=-1)
+    df_output["lead_up_holiday_name"] = df_output["holiday_name"].shift(periods=-1)
+    df_output["day_type"] = df_output.apply(
         lambda x: determine_day(x["flag_holiday"], x["flag_lead_up_holiday"]), axis=1
     )
-    return df_input
+    return df_output
 
 
 def get_last_5_weeks_sales_per_day(
-    df_sales: pd.DataFrame, sales_col: str
+    df_input: pd.DataFrame, sales_col: str
 ) -> pd.DataFrame:
-    df_sales["sales_7_days_prior"] = df_sales[sales_col].shift(7)
-    df_sales["sales_14_days_prior"] = df_sales[sales_col].shift(14)
-    df_sales["sales_21_days_prior"] = df_sales[sales_col].shift(21)
-    df_sales["sales_28_days_prior"] = df_sales[sales_col].shift(28)
-    df_sales["sales_35_days_prior"] = df_sales[sales_col].shift(35)
-    return df_sales
+    df_output = df_input.copy()
+    df_output["sales_7_days_prior"] = df_output[sales_col].shift(7)
+    df_output["sales_14_days_prior"] = df_output[sales_col].shift(14)
+    df_output["sales_21_days_prior"] = df_output[sales_col].shift(21)
+    df_output["sales_28_days_prior"] = df_output[sales_col].shift(28)
+    df_output["sales_35_days_prior"] = df_output[sales_col].shift(35)
+    return df_output
 
 
 def flag_14_out_of_28_days_sales_history(
-    df_sales: pd.DataFrame, sales_col: str
+    df_input: pd.DataFrame, sales_col: str
 ) -> pd.DataFrame:
-    df_sales["fc_14_in_28_days"] = (
-        ~df_sales[sales_col].rolling(window=28, min_periods=14).sum().isna()
+    df_output = df_input.copy()
+    df_output["fc_14_in_28_days"] = (
+        ~df_output[sales_col].rolling(window=28, min_periods=14).sum().isna()
     )
-    return df_sales
+    return df_output
 
 
 def create_7_day_forecast_columns(df_input: pd.DataFrame) -> pd.DataFrame:
-    df_input["7_day_forecast_prelim"] = df_input[
+    df_output = df_input.copy()
+    df_output["7_day_forecast_prelim"] = df_output[
         [
             "sales_7_days_prior",
             "sales_14_days_prior",
@@ -153,14 +158,15 @@ def create_7_day_forecast_columns(df_input: pd.DataFrame) -> pd.DataFrame:
         ]
     ].mean(axis=1)
 
-    df_input["7_day_forecast"] = df_input["7_day_forecast_prelim"]
+    df_output["7_day_forecast"] = df_output["7_day_forecast_prelim"]
     # Set forecast to nan when less than 14 days of sales recorded in last 28 days
-    df_input.loc[df_input["fc_14_in_28_days"] == False, "7_day_forecast"] = np.nan
-    return df_input
+    df_output.loc[df_output["fc_14_in_28_days"] == False, "7_day_forecast"] = np.nan
+    return df_output
 
 
 def create_14_day_forecast_columns(df_input: pd.DataFrame) -> pd.DataFrame:
-    df_input["input_14_day_forecast"] = df_input[
+    df_output = df_input.copy()
+    df_output["input_14_day_forecast"] = df_output[
         [
             "sales_14_days_prior",
             "sales_21_days_prior",
@@ -169,7 +175,7 @@ def create_14_day_forecast_columns(df_input: pd.DataFrame) -> pd.DataFrame:
         ]
     ].mean(axis=1)
 
-    df_input["14_day_forecast_prelim"] = df_input[
+    df_output["14_day_forecast_prelim"] = df_output[
         [
             "input_14_day_forecast",
             "sales_14_days_prior",
@@ -179,30 +185,36 @@ def create_14_day_forecast_columns(df_input: pd.DataFrame) -> pd.DataFrame:
     ].mean(axis=1)
 
     # Set forecast to nan when less than 14 days of sales recorded in last 28 days
-    df_input["14_day_forecast"] = df_input["14_day_forecast_prelim"]
-    df_input.loc[df_input["fc_14_in_28_days"] == False, "14_day_forecast"] = np.nan
-    return df_input
+    df_output["14_day_forecast"] = df_output["14_day_forecast_prelim"]
+    df_output.loc[df_output["fc_14_in_28_days"] == False, "14_day_forecast"] = np.nan
+    return df_output
 
 
 def create_eval_metric_columns(
     df_input: pd.DataFrame, sales_adj_col: str
 ) -> pd.DataFrame:
-    df_input["mape_7_day_forecast"] = abs(
-        (df_input[sales_adj_col] - df_input["7_day_forecast"]) / df_input[sales_adj_col]
+    df_output = df_input.copy()
+    df_output["eval_threshold_5_prc"] = df_output["7_day_forecast"] * 0.05
+    df_output["7_day_forecast_thr"] = df_output["7_day_forecast"]
+    df_output.loc[
+        (df_output[sales_adj_col] < df_output["eval_threshold_5_prc"]),
+        "7_day_forecast_thr",
+    ] = 0.01
+    df_output["mape_7_day_forecast"] = abs(
+        (df_output[sales_adj_col] - df_output["7_day_forecast"])
+        / df_output[sales_adj_col]
     )
-    df_input["mape_14_day_forecast"] = abs(
-        (df_input[sales_adj_col] - df_input["14_day_forecast"])
-        / df_input[sales_adj_col]
+    df_output["mape_14_day_forecast"] = abs(
+        (df_output[sales_adj_col] - df_output["14_day_forecast"])
+        / df_output[sales_adj_col]
     )
-    df_input["real_diff"] = df_input[sales_adj_col] - df_input["7_day_forecast"]
+    df_output["real_diff"] = df_output[sales_adj_col] - df_output["7_day_forecast"]
+    df_output["abs_diff"] = abs(df_output[sales_adj_col] - df_output["7_day_forecast"])
+    df_output["real_perc_diff"] = (
+        100 * (df_output["real_diff"]) / df_output[sales_adj_col]
+    )
+    df_output["abs_perc_diff"] = (
+        100 * abs(df_output["abs_diff"]) / df_output[sales_adj_col]
+    )
 
-    # Only compare values where business was open: sales are > 1euro / 1 sterling etc
-    df_input["diff_open"] = df_input["diff"]
-    df_input.loc[df_input[sales_adj_col] < 1, "diff_open"] = 0
-    df_input["diff_perc_real"] = 100 * (df_input["diff_open"]) / df_input[sales_adj_col]
-    df_input["diff_perc"] = 100 * abs(df_input["diff_open"]) / df_input[sales_adj_col]
-
-    # Change this to be relative to previous sales revenue -
-    df_input["revenue_below_100"] = df_input[sales_adj_col] < 100
-
-    return df_input
+    return df_output
