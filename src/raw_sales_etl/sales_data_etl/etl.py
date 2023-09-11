@@ -218,3 +218,32 @@ def create_eval_metric_columns(
     )
 
     return df_output
+
+
+def etl_pipeline(
+    df_sales: pd.DataFrame,
+    df_meta: pd.DataFrame,
+    df_hols: pd.DataFrame,
+    df_calendar: pd.DataFrame,
+    unique_id_sales: str,
+    unique_id_meta: str,
+    sales_col: str,
+) -> pd.DataFrame:
+    df_comb = merge_sales_meta(df_sales, unique_id_sales, df_meta, unique_id_meta)
+    unique_ids = get_unique_business_ids(df_comb, unique_id_sales)
+    sales_adj_col = f"{sales_col}_adj"
+    dfs_ls = []
+    for id_ in unique_ids:
+        df_comb_ = df_comb[df_comb[unique_id_sales] == id_].copy()
+        df_comb_ = join_calendar_to_sales_history(df_comb_, df_calendar)
+        df_comb_ = join_hols_to_sales_history_calendar(df_comb_, df_hols)
+        df_comb_ = create_lead_up_columns(df_comb_)
+        df_comb_ = zero_negative_sales(df_comb_, sales_col)
+        df_comb_ = get_last_5_weeks_sales_per_day(df_comb_, sales_adj_col)
+        df_comb_ = flag_14_out_of_28_days_sales_history(df_comb_, sales_adj_col)
+        df_comb_ = create_7_day_forecast_columns(df_comb_)
+        df_comb_ = create_14_day_forecast_columns(df_comb_)
+        df_comb_ = create_eval_metric_columns(df_comb_, sales_adj_col)
+        dfs_ls.append(df_comb_)
+    df_output = pd.concat(dfs_ls, axis=0)
+    return df_output
