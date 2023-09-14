@@ -15,7 +15,7 @@ HOLIDAY_GRANULARITY = {
     313: "Holidays and many observances",
     13759295: "All holidays/observances/religious events",
 }
-CALENDAR_META = {"uk": 4194331, "ireland": 281, "malta": 25}
+CALENDAR_META = {"uk": 25, "ireland": 281, "malta": 25}
 
 
 def convert_ms_unix_timestamp_to_datatime(unix_timestamp: str) -> datetime:
