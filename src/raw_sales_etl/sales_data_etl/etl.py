@@ -1,6 +1,7 @@
 from datetime import date
 from pathlib import Path
 from typing import Union
+import calendar
 
 import numpy as np
 import pandas as pd
@@ -255,6 +256,18 @@ def create_eval_metric_columns(
     return df_output
 
 
+def add_year_month_day_columns(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+    dow_mapping = {i: d for i, d in enumerate(calendar.day_abbr)}
+    month_mapping = {i: d for i, d in enumerate(calendar.month_abbr)}
+    df_output['year'] = df_output.index.year
+    df_output['dow'] = [dow_mapping[v] for v in df_output.index.day_of_week.values]
+    df_output['week_id'] = df_output.index.week
+    df_output['month_id'] = df_output.index.month
+    df_output['month'] = [month_mapping[v] for v in df_output.index.month.values]
+    return df_output
+
+
 def etl_pipeline(
     df_sales: pd.DataFrame,
     df_meta: pd.DataFrame,
@@ -281,4 +294,5 @@ def etl_pipeline(
         df_comb_ = create_eval_metric_columns(df_comb_, sales_adj_col)
         dfs_ls.append(df_comb_)
     df_output = pd.concat(dfs_ls, axis=0)
+    df_output = add_year_month_day_columns(df_output)
     return df_output
