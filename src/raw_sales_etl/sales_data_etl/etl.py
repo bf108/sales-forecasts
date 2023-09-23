@@ -149,7 +149,8 @@ def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
     ] = True
     df_output.loc[
         (df_output['dow_int'] == 6) &
-        (df_output['flag_lead_up_holiday'] == True),
+        (df_output['flag_lead_up_holiday'] == True) &
+        (~df_output['lead_up_holiday_name'].str.contains('Valentine', case=False)),
         "bank_holiday_weekend_flag"
     ] = True
     df_output['bank_holiday_check'] = df_output["flag_holiday"].shift(periods=-3)
