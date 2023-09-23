@@ -91,12 +91,11 @@ def create_calendar_df(start_dt: date, end_dt: date) -> pd.DataFrame:
 def join_calendar_to_sales_history(
     df_sales: pd.DataFrame, df_calendar: pd.DataFrame
 ) -> pd.DataFrame:
-    fill_value = df_sales["unique_id"].unique()[0]
     df_output = df_calendar.join(df_sales, how="left")
-    df_output["unique_id"] = fill_value
+    cols = [c for c in df_output.columns if c not in ["y", "operational_flag"]]
+    df_output[cols] = df_output[cols].ffill().bfill()
     df_output.drop(columns=["dummy"], inplace=True)
     df_output["operational_flag"] = df_output["operational_flag"].ffill()
-
     assert (
         df_output.shape[0] == df_calendar.shape[0]
     ), f"Missing rows from join: Calendar: {df_calendar.shape[0]} vs Output {df_output.shape[0]}"
