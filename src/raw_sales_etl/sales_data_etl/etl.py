@@ -130,7 +130,7 @@ def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output['dow_int'] = df_output['date_column_bhw'].dt.dayofweek
     df_output.loc[df_output["flag_holiday"].isna(), "flag_holiday"] = False
     df_output["flag_lead_up_holiday"] = df_output["flag_holiday"].shift(periods=-1)
-    df_output["lead_up_holiday_name"] = df_output["holiday_name"].shift(periods=-1)
+    df_output["lead_up_holiday_name"] = df_output["holiday_name"].shift(periods=-1).fillna("")
     df_output['three_day_shift'] = df_output["flag_holiday"].shift(periods=-3)
     df_output['three_day_shift_name'] = df_output["holiday_name"].shift(periods=-3).fillna("")
     df_output['two_day_shift'] = df_output["flag_holiday"].shift(periods=-2)
