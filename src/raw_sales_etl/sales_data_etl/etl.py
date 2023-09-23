@@ -131,15 +131,19 @@ def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output["flag_lead_up_holiday"] = df_output["flag_holiday"].shift(periods=-1)
     df_output["lead_up_holiday_name"] = df_output["holiday_name"].shift(periods=-1)
     df_output['three_day_shift'] = df_output["flag_holiday"].shift(periods=-3)
+    df_output['three_day_shift_name'] = df_output["holiday_name"].shift(periods=-3).fillna("")
     df_output['two_day_shift'] = df_output["flag_holiday"].shift(periods=-2)
+    df_output['two_day_shift_name'] = df_output["holiday_name"].shift(periods=-2).fillna("")
     df_output.loc[
         (df_output['dow_int'] == 4) &
-        (df_output['three_day_shift'] == True),
+        (df_output['three_day_shift'] == True) &
+        (~df_output['three_day_shift_name'].str.contains('Valentine', case=False)),
         "bank_holiday_weekend_flag"
     ] = True
     df_output.loc[
         (df_output['dow_int'] == 5) &
-        (df_output['two_day_shift'] == True),
+        (df_output['two_day_shift'] == True) &
+        (~df_output['two_day_shift_name'].str.contains('Valentine', case=False)),
         "bank_holiday_weekend_flag"
     ] = True
     df_output.loc[
@@ -151,6 +155,8 @@ def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output["day_type"] = df_output.apply(
         lambda x: determine_day(x["flag_holiday"], x["flag_lead_up_holiday"]), axis=1
     )
+    df_output.loc[(df_output['bank_holiday_weekend_flag'] == True), 'bank_holiday_weekend_name'] = 'bank_holiday_weekend'
+    df_output['holiday_name_v1'] = df_output['holiday_name'].combine_first(df_output['bank_holiday_weekend_name'])
     return df_output
 
 
