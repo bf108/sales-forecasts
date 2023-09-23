@@ -132,12 +132,17 @@ def add_valentines_ireland(df_input: pd.DataFrame, years: list[int]) -> pd.DataF
     df_output = df_input.copy()
     ireland_val = []
     for y in years:
-        tmp_dict = {'date': date(y, 2, 14), 'holiday_name': 'Valentines Day', 'country': "ireland",'flag_holiday': True}
+        tmp_dict = {
+            "date": date(y, 2, 14),
+            "holiday_name": "Valentines Day",
+            "country": "ireland",
+            "flag_holiday": True,
+        }
         ireland_val.append(tmp_dict)
 
     df_tmp = pd.DataFrame(ireland_val)
-    df_tmp['date'] = pd.to_datetime(df_tmp['date'])
-    df_tmp.set_index('date', inplace=True)
+    df_tmp["date"] = pd.to_datetime(df_tmp["date"])
+    df_tmp.set_index("date", inplace=True)
     df_output = pd.concat([df_output, df_tmp])
     return df_output
 
@@ -171,10 +176,8 @@ def clean_up_holidays_df(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output["holiday_name"] = df_output["holiday_name"].str.replace(
         "^Easter$", "Easter Sunday", regex=True
     )
-    df_output = (
-        df_output[(df_output["holiday_name"].isin(IMPORTANT_DAYS))]
-        .set_index("date")
-        .drop(columns=["holiday_details"])
+    df_output = df_output[(df_output["holiday_name"].isin(IMPORTANT_DAYS))].drop(
+        columns=["holiday_details", "holiday_type"]
     )
     return df_output
 
