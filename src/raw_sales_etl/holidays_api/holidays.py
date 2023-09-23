@@ -124,7 +124,22 @@ def create_combined_holidays_df(countries: list[str], years: list[int]) -> pd.Da
         holidays_dfs.append(tmp_df)
     df_combined = pd.concat(holidays_dfs, axis=0)
     df_combined = clean_up_holidays_df(df_combined)
+    df_combined = add_valentines_ireland(df_combined, years)
     return df_combined
+
+
+def add_valentines_ireland(df_input: pd.DataFrame, years: list[int]) -> pd.DataFrame:
+    df_output = df_input.copy()
+    ireland_val = []
+    for y in years:
+        tmp_dict = {'date': date(y, 2, 14), 'holiday_name': 'Valentines Day', 'country': "ireland",'flag_holiday': True}
+        ireland_val.append(tmp_dict)
+
+    df_tmp = pd.DataFrame(ireland_val)
+    df_tmp['date'] = pd.to_datetime(df_tmp['date'])
+    df_tmp.set_index('date', inplace=True)
+    df_output = pd.concat([df_output, df_tmp])
+    return df_output
 
 
 def clean_up_holidays_df(df_input: pd.DataFrame) -> pd.DataFrame:
