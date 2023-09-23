@@ -125,9 +125,29 @@ def determine_day(holiday_flag: bool, lead_up_flag: bool) -> str:
 
 def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output = df_input.copy()
+    df_output['date_column_bhw'] = df_output.index
+    df_output['dow_int'] = df_output['date_column_bhw'].dt.dayofweek
     df_output.loc[df_output["flag_holiday"].isna(), "flag_holiday"] = False
     df_output["flag_lead_up_holiday"] = df_output["flag_holiday"].shift(periods=-1)
     df_output["lead_up_holiday_name"] = df_output["holiday_name"].shift(periods=-1)
+    df_output['three_day_shift'] = df_output["flag_holiday"].shift(periods=-3)
+    df_output['two_day_shift'] = df_output["flag_holiday"].shift(periods=-2)
+    df_output.loc[
+        (df_output['dow_int'] == 4) &
+        (df_output['three_day_shift'] == True),
+        "bank_holiday_weekend_flag"
+    ] = True
+    df_output.loc[
+        (df_output['dow_int'] == 5) &
+        (df_output['two_day_shift'] == True),
+        "bank_holiday_weekend_flag"
+    ] = True
+    df_output.loc[
+        (df_output['dow_int'] == 6) &
+        (df_output['flag_lead_up_holiday'] == True),
+        "bank_holiday_weekend_flag"
+    ] = True
+    df_output['bank_holiday_check'] = df_output["flag_holiday"].shift(periods=-3)
     df_output["day_type"] = df_output.apply(
         lambda x: determine_day(x["flag_holiday"], x["flag_lead_up_holiday"]), axis=1
     )
