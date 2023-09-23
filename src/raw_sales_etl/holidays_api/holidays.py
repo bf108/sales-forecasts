@@ -1,4 +1,5 @@
 from ast import literal_eval
+from datetime import date
 from datetime import datetime
 
 import pandas as pd
@@ -16,6 +17,32 @@ HOLIDAY_GRANULARITY = {
     13759295: "All holidays/observances/religious events",
 }
 CALENDAR_META = {"uk": 4194329, "ireland": 281, "malta": 25}
+IMPORTANT_DAYS = [
+    "Boxing Day",
+    "Christmas Day",
+    "Christmas Eve",
+    "Day off for New Years Day",
+    "Early August Bank Holiday",
+    "Early May Bank Holiday",
+    "Easter Monday",
+    "Easter Sunday",
+    "Fathers Day",
+    "Good Friday",
+    "June Bank Holiday",
+    "Late August Bank Holiday",
+    "Mothers Day",
+    "New Years Day",
+    "New Years Day observed",
+    "New Years Eve",
+    "October Bank Holiday",
+    "Public Holiday",
+    "Spring Bank Holiday",
+    "St. Brigids Day",
+    "St. Patricks Day",
+    "Substitute Bank Holiday for Boxing Day",
+    "Substitute Bank Holiday for Christmas Day",
+    "Valentines Day",
+]
 
 
 def convert_ms_unix_timestamp_to_datatime(unix_timestamp: str) -> datetime:
@@ -96,7 +123,45 @@ def create_combined_holidays_df(countries: list[str], years: list[int]) -> pd.Da
         tmp_df = pd.concat(tmp_dfs, axis=0)
         holidays_dfs.append(tmp_df)
     df_combined = pd.concat(holidays_dfs, axis=0)
+    df_combined = clean_up_holidays_df(df_combined)
     return df_combined
+
+
+def clean_up_holidays_df(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+    scottish_bank_holidays = df_output[
+        (df_output["holiday_name"] == "Summer Bank Holiday")
+        & (df_output["holiday_details"] == "Scotland")
+    ].index
+    df_output.loc[scottish_bank_holidays, "holiday_name"] = "Early August Bank Holiday"
+    # Process holiday data
+    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
+        "'|’", "", regex=True
+    )
+    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
+        "Summer Bank Holiday", "Late August Bank Holiday", regex=True
+    )
+    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
+        "^August Bank Holiday$", "Early August Bank Holiday", regex=True
+    )
+    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
+        "^May Day$", "Early May Bank Holiday", regex=True
+    )
+    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
+        "^St. Stephens Day$", "Boxing Day", regex=True
+    )
+    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
+        " / VE Day", "", regex=True
+    )
+    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
+        "^Easter$", "Easter Sunday", regex=True
+    )
+    df_output = (
+        df_output[(df_output["holiday_name"].isin(IMPORTANT_DAYS))]
+        .set_index("date")
+        .drop(columns=["holiday_details"])
+    )
+    return df_output
 
 
 def join_holidays_df_to_calendar_df(
