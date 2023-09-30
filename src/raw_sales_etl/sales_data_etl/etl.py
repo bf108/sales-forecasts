@@ -286,6 +286,12 @@ def add_year_month_day_columns(df_input: pd.DataFrame) -> pd.DataFrame:
     return df_output
 
 
+def operating_day_in_365_days(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+    df_output['operating_days_365_lookforward'] = (~df_output['y'].isna())\
+        .rolling("365D", min_periods=1).sum().shift(-365).values
+    return df_output
+
 def etl_pipeline(
     df_sales: pd.DataFrame,
     df_meta: pd.DataFrame,
@@ -314,6 +320,7 @@ def etl_pipeline(
         for day in [7, 14, 21, 28]:
             df_comb_ = x_day_forecast(df_comb_, day)
         df_comb_ = create_eval_metric_columns(df_comb_, sales_adj_col, sales_adj_prc_th)
+        df_comb_ = operating_day_in_365_days(df_comb_)
         dfs_ls.append(df_comb_)
     df_output = pd.concat(dfs_ls, axis=0)
     df_output = add_year_month_day_columns(df_output)
