@@ -344,6 +344,27 @@ def join_venue_operational_stats(df_input: pd.DataFrame) -> pd.DataFrame:
     return df_output_v1
 
 
+def country_level_holiday_factors(df_input: pd.DataFrame, year: int) -> pd.DataFrame:
+    df_output = df_input.copy()
+    df_hol_scaling = (
+        df_input[(~df_input["holiday_name_v1"].isna()) & (df_input["year"] == year)]
+        .groupby(by=["holiday_name_v1", "country"])
+        .agg({"7_day_forecast_real_error": ["median"]})
+        .droplevel(0, 1)[["median"]]
+        .reset_index()
+        .dropna()
+        .rename(columns={"median": f"holiday_scaling_factor_country_median_{year}"})
+    )
+    df_output_v1 = df_output.merge(
+        df_hol_scaling,
+        left_on=["country", "holiday_name_v1"],
+        right_on=["country", "holiday_name_v1"],
+        how="left",
+    )
+    df_output_v1.index = df_output.index
+    return df_output_v1
+
+
 def etl_pipeline(
     df_sales: pd.DataFrame,
     df_meta: pd.DataFrame,
@@ -384,4 +405,5 @@ def etl_pipeline(
     )
     df_output["date_column"] = df_output.index
     df_output = join_venue_operational_stats(df_output)
+    df_output = country_level_holiday_factors(df_output, 2022)
     return df_output
