@@ -193,16 +193,16 @@ def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_last_7_weeks_sales_per_day(
-    df_input: pd.DataFrame, sales_col: str
+    df_input: pd.DataFrame, sales_col: str, suffix: str = None
 ) -> pd.DataFrame:
     df_output = df_input.copy()
-    df_output["sales_7_days_prior"] = df_output[sales_col].shift(7)
-    df_output["sales_14_days_prior"] = df_output[sales_col].shift(14)
-    df_output["sales_21_days_prior"] = df_output[sales_col].shift(21)
-    df_output["sales_28_days_prior"] = df_output[sales_col].shift(28)
-    df_output["sales_35_days_prior"] = df_output[sales_col].shift(35)
-    df_output["sales_42_days_prior"] = df_output[sales_col].shift(42)
-    df_output["sales_49_days_prior"] = df_output[sales_col].shift(49)
+    for day in [7, 14, 21, 28, 35, 42, 49]:
+        if not suffix:
+            df_output[f"sales_{day}_days_prior"] = df_output[sales_col].shift(day)
+        else:
+            df_output[f"sales_{day}_days_prior_{suffix}"] = df_output[sales_col].shift(
+                day
+            )
     return df_output
 
 
@@ -216,41 +216,58 @@ def flag_14_out_of_28_days_sales_history(
     return df_output
 
 
-def x_day_forecast(df_input: pd.DataFrame, x: int):
+def x_day_forecast(df_input: pd.DataFrame, x: int, suffix: str = None):
     df_output = df_input.copy()
     x_cp = x
     counter = 0
     input_cols = []
-    while x >= 7:
+    if not suffix:
         cols = [f"sales_{(i*7)+x}_days_prior" for i in range(4)]
+        input_col_prefix = f"{x_cp}_day_forecast_input_"
+        output_col = f"{x_cp}_day_forecast"
+    else:
+        cols = [f"sales_{(i*7)+x}_days_prior_{suffix}" for i in range(4)]
+        input_col_prefix = f"{x_cp}_day_forecast_input_{suffix}"
+        output_col = f"{x_cp}_day_forecast_{suffix}"
+    while x >= 7:
         if counter > 0:
-            input_cols.append(f"{x_cp}_day_forecast_input_{counter}")
-            cols = input_cols + cols[counter:]
-        input_col = f"{x_cp}_day_forecast_input_{counter+1}"
-        df_output[input_col] = df_output[cols].mean(axis=1)
+            input_cols.append(f"{input_col_prefix}{counter}")
+            cols_tmp = input_cols + cols[counter:]
+        else:
+            cols_tmp = cols
+        input_col = f"{input_col_prefix}{counter+1}"
+        df_output[input_col] = df_output[cols_tmp].mean(axis=1)
         x -= 7
         counter += 1
-    df_output[f"{x_cp}_day_forecast"] = df_output[
-        f"{x_cp}_day_forecast_input_{counter}"
-    ]
-    df_output.loc[
-        df_output["fc_14_in_28_days"] == False, f"{x_cp}_day_forecast"
-    ] = np.nan
+    df_output[output_col] = df_output[f"{input_col_prefix}{counter}"]
+    df_output.loc[df_output["fc_14_in_28_days"] == False, output_col] = np.nan
     return df_output
 
 
 def create_eval_metric_columns(
-    df_input: pd.DataFrame, sales_adj_col: str, sales_adj_prc_th: float
+    df_input: pd.DataFrame,
+    sales_adj_col: str,
+    sales_adj_prc_th: float,
+    suffix: str = None,
 ) -> pd.DataFrame:
     df_output = df_input.copy()
     for day in [7, 14, 21, 28]:
-        n_day_forecast = f"{day}_day_forecast"
-        n_day_eval_th = f"{day}_day_eval_threshold"
-        n_day_forecast_th = f"{day}_day_forecast_threshold"
-        n_day_ape = f"{day}_day_forecast_abs_error"
-        n_day_re = f"{day}_day_forecast_real_error"
-        n_day_a_diff = f"{day}_day_abs_diff"
-        n_day_r_diff = f"{day}_day_real_diff"
+        if not suffix:
+            n_day_forecast = f"{day}_day_forecast"
+            n_day_eval_th = f"{day}_day_eval_threshold"
+            n_day_forecast_th = f"{day}_day_forecast_threshold"
+            n_day_ape = f"{day}_day_forecast_abs_error"
+            n_day_re = f"{day}_day_forecast_real_error"
+            n_day_a_diff = f"{day}_day_abs_diff"
+            n_day_r_diff = f"{day}_day_real_diff"
+        else:
+            n_day_forecast = f"{day}_day_forecast_{suffix}"
+            n_day_eval_th = f"{day}_day_eval_threshold_{suffix}"
+            n_day_forecast_th = f"{day}_day_forecast_threshold_{suffix}"
+            n_day_ape = f"{day}_day_forecast_abs_error_{suffix}"
+            n_day_re = f"{day}_day_forecast_real_error_{suffix}"
+            n_day_a_diff = f"{day}_day_abs_diff_{suffix}"
+            n_day_r_diff = f"{day}_day_real_diff_{suffix}"
 
         df_output[n_day_eval_th] = df_output[n_day_forecast] * sales_adj_prc_th
         df_output[n_day_forecast_th] = df_output[n_day_forecast]
@@ -353,7 +370,7 @@ def country_level_holiday_factors(df_input: pd.DataFrame, year: int) -> pd.DataF
         .droplevel(0, 1)[["median"]]
         .reset_index()
         .dropna()
-        .rename(columns={"median": f"holiday_scaling_factor_country_median_{year}"})
+        .rename(columns={"median": f"raw_holiday_scaling_factor_country_median_{year}"})
     )
     df_output_v1 = df_output.merge(
         df_hol_scaling,
@@ -377,8 +394,8 @@ def brand_level_holiday_factors(df_input: pd.DataFrame, year: int) -> pd.DataFra
         .dropna()
         .rename(
             columns={
-                "mean": f"holiday_scaling_factor_brand_mean_{year}",
-                "median": f"holiday_scaling_factor_brand_median_{year}",
+                "mean": f"raw_holiday_scaling_factor_brand_mean_{year}",
+                "median": f"raw_holiday_scaling_factor_brand_median_{year}",
             }
         )
     )
@@ -407,19 +424,46 @@ def branch_level_holiday_factors(
         .dropna()
         .rename(
             columns={
-                "mean": "holiday_scaling_factor_branch_mean",
-                "median": "holiday_scaling_factor_branch_median",
+                "mean": "raw_holiday_scaling_factor_branch_mean",
+                "median": "raw_holiday_scaling_factor_branch_median",
             }
         )
     )
     df_output_v1 = df_output.merge(
         df_hol_scaling,
-        left_on=["brandname", "holiday_name_v1"],
-        right_on=["brandname", "holiday_name_v1"],
+        left_on=["brandname", "branchname", "holiday_name_v1"],
+        right_on=["brandname", "branchname", "holiday_name_v1"],
         how="left",
     )
     df_output_v1.index = df_output.index
     return df_output_v1
+
+
+def adjust_forecast_based_on_holidays(
+    df_input: pd.DataFrame, prc: float = 1.0
+) -> pd.DataFrame:
+    df_output = df_input.copy()
+    sf_cols = [col for col in df_output.columns if "raw_holiday_scaling_factor" in col]
+    for col in sf_cols:
+        df_output[col] = df_output[col].fillna(0)
+        sf_suffix = col.split("raw_holiday_scaling_factor_")[1]
+        forecast_sf = sf_suffix + "_forecast_sf"
+        normalize_sf = sf_suffix + "_normalized_sf"
+        df_output[forecast_sf] = 1 / (1 - df_output[col] * prc)
+        df_output[normalize_sf] = 1 - df_output[col] * prc
+        normalized_sales = f"y_adj_{sf_suffix}"
+        df_output[normalized_sales] = df_output["y_adj"] * df_output[normalize_sf]
+        df_output = get_last_7_weeks_sales_per_day(
+            df_output, normalized_sales, suffix=sf_suffix
+        )
+        for day in [7, 14, 21, 28]:
+            df_output = x_day_forecast(df_output, day, suffix=sf_suffix)
+            #Apply holiday scaling
+            df_output[f"{day}_day_forecast_{sf_suffix}"] = (
+                df_output[f"{day}_day_forecast_{sf_suffix}"] * df_output[forecast_sf]
+            )
+            create_eval_metric_columns(df_output, "y_adj", 0.05, suffix=sf_suffix)
+    return df_output
 
 
 def etl_pipeline(
@@ -465,4 +509,5 @@ def etl_pipeline(
     df_output = country_level_holiday_factors(df_output, 2022)
     df_output = brand_level_holiday_factors(df_output, 2022)
     df_output = branch_level_holiday_factors(df_output, [2021, 2022])
+    df_output = adjust_forecast_based_on_holidays(df_output)
     return df_output
