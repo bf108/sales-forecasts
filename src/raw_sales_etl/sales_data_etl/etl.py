@@ -1,7 +1,7 @@
+import calendar
 from datetime import date
 from pathlib import Path
 from typing import Union
-import calendar
 
 import numpy as np
 import pandas as pd
@@ -370,7 +370,7 @@ def country_level_holiday_factors(df_input: pd.DataFrame, year: int) -> pd.DataF
         .droplevel(0, 1)[["median"]]
         .reset_index()
         .dropna()
-        .rename(columns={"median": f"raw_holiday_scaling_factor_country_median_{year}"})
+        .rename(columns={"median": f"raw_holiday_scaling_factor_country_median"})
     )
     df_output_v1 = df_output.merge(
         df_hol_scaling,
@@ -394,8 +394,8 @@ def brand_level_holiday_factors(df_input: pd.DataFrame, year: int) -> pd.DataFra
         .dropna()
         .rename(
             columns={
-                "mean": f"raw_holiday_scaling_factor_brand_mean_{year}",
-                "median": f"raw_holiday_scaling_factor_brand_median_{year}",
+                "mean": f"raw_holiday_scaling_factor_brand_mean",
+                "median": f"raw_holiday_scaling_factor_brand_median",
             }
         )
     )
@@ -458,7 +458,7 @@ def adjust_forecast_based_on_holidays(
         )
         for day in [7, 14, 21, 28]:
             df_output = x_day_forecast(df_output, day, suffix=sf_suffix)
-            #Apply holiday scaling
+            # Apply holiday scaling
             df_output[f"{day}_day_forecast_{sf_suffix}"] = (
                 df_output[f"{day}_day_forecast_{sf_suffix}"] * df_output[forecast_sf]
             )
