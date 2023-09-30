@@ -288,9 +288,61 @@ def add_year_month_day_columns(df_input: pd.DataFrame) -> pd.DataFrame:
 
 def operating_day_in_365_days(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output = df_input.copy()
-    df_output['operating_days_365_lookforward'] = (~df_output['y'].isna())\
-        .rolling("365D", min_periods=1).sum().shift(-365).values
+    df_output["operating_days_365_lookforward"] = (
+        (~df_output["y"].isna()).rolling("365D", min_periods=1).sum().shift(-365).values
+    )
     return df_output
+
+
+def join_venue_operational_stats(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+    # Join max operating days, date of start and finish of plateau and days at top to each unqiue_id
+    res_max_lookforward = []
+    for i, _id in enumerate(df_output["unique_id"].unique()):
+        tmp_df = df_output[(df_output["unique_id"] == _id)].copy()
+        tmp_df_index = tmp_df.index
+        max_days = tmp_df["operating_days_365_lookforward"].max()
+        first_max_index = tmp_df_index[
+            tmp_df["operating_days_365_lookforward"].argmax()
+        ]
+        last_max_index = tmp_df_index[::-1][
+            tmp_df["operating_days_365_lookforward"][::-1].argmax()
+        ]
+        operating_2020 = tmp_df[tmp_df["date_column"] == "2020-01-01"][
+            "operating_days_365_lookforward"
+        ].max()
+        operating_2021 = tmp_df[tmp_df["date_column"] == "2021-01-01"][
+            "operating_days_365_lookforward"
+        ].max()
+        operating_2022 = tmp_df[tmp_df["date_column"] == "2022-01-01"][
+            "operating_days_365_lookforward"
+        ].max()
+        res_max_lookforward.append(
+            {
+                "unique_id": _id,
+                "max_operating_days": max_days,
+                "date_first_max_op_days": first_max_index,
+                "date_last_max_op_days": last_max_index,
+                "op_days_2020": operating_2020,
+                "op_days_2021": operating_2021,
+                "op_days_2022": operating_2022,
+            }
+        )
+    df_max_lookforward = pd.DataFrame(res_max_lookforward)
+    df_max_lookforward["plateau_length_days"] = (
+        df_max_lookforward["date_last_max_op_days"]
+        - df_max_lookforward["date_first_max_op_days"]
+    ).dt.days
+    df_output_v1 = pd.merge(
+        df_output,
+        df_max_lookforward,
+        left_on="unique_id",
+        right_on="unique_id",
+        how="left",
+    )
+    df_output_v1.index = df_output.index
+    return df_output_v1
+
 
 def etl_pipeline(
     df_sales: pd.DataFrame,
@@ -330,4 +382,6 @@ def etl_pipeline(
         .str.replace(".", "")
         .str.lower()
     )
+    df_output["date_column"] = df_output.index
+    df_output = join_venue_operational_stats(df_output)
     return df_output
