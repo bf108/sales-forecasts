@@ -148,7 +148,7 @@ def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
             and (x["flag_lead_up_holiday"] == True)
             and (not x["lead_up_holiday_name"].startswith("Valentine"))
         )
-        else np.nan,
+        else None,
         axis=1,
     )
     df_output["bank_holiday_weekend_name_fri_prior"] = df_output.apply(
@@ -158,7 +158,7 @@ def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
             and (x["three_day_shift"] == True)
             and (not x["three_day_shift_name"].startswith("Valentine"))
         )
-        else np.nan,
+        else None,
         axis=1,
     )
     df_output["bank_holiday_weekend_name_sat_prior"] = df_output.apply(
@@ -168,7 +168,7 @@ def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
             and (x["two_day_shift"] == True)
             and (not x["two_day_shift_name"].startswith("Valentine"))
         )
-        else np.nan,
+        else None,
         axis=1,
     )
     df_output["bank_holiday_weekend_name_sun_prior"] = df_output.apply(
@@ -178,7 +178,7 @@ def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
             and (x["flag_lead_up_holiday"] == True)
             and (not x["lead_up_holiday_name"].startswith("Valentine"))
         )
-        else np.nan,
+        else None,
         axis=1,
     )
     df_output["holiday_name_v1"] = (
