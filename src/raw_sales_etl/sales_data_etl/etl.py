@@ -392,6 +392,36 @@ def brand_level_holiday_factors(df_input: pd.DataFrame, year: int) -> pd.DataFra
     return df_output_v1
 
 
+def branch_level_holiday_factors(
+    df_input: pd.DataFrame, years: list[int]
+) -> pd.DataFrame:
+    df_output = df_input.copy()
+    df_hol_scaling = (
+        df_output[
+            (~df_output["holiday_name_v1"].isna()) & (df_output["year"].between(*years))
+        ]
+        .groupby(by=["brandname", "branchname", "holiday_name_v1"])
+        .agg({"7_day_forecast_real_error": ["mean", "median"]})
+        .droplevel(0, 1)[["mean", "median"]]
+        .reset_index()
+        .dropna()
+        .rename(
+            columns={
+                "mean": "holiday_scaling_factor_branch_mean",
+                "median": "holiday_scaling_factor_branch_median",
+            }
+        )
+    )
+    df_output_v1 = df_output.merge(
+        df_hol_scaling,
+        left_on=["brandname", "holiday_name_v1"],
+        right_on=["brandname", "holiday_name_v1"],
+        how="left",
+    )
+    df_output_v1.index = df_output.index
+    return df_output_v1
+
+
 def etl_pipeline(
     df_sales: pd.DataFrame,
     df_meta: pd.DataFrame,
@@ -433,5 +463,6 @@ def etl_pipeline(
     df_output["date_column"] = df_output.index
     df_output = join_venue_operational_stats(df_output)
     df_output = country_level_holiday_factors(df_output, 2022)
-    df_output = brand_level_holiday_factors(df_output,2022)
+    df_output = brand_level_holiday_factors(df_output, 2022)
+    df_output = branch_level_holiday_factors(df_output, [2021, 2022])
     return df_output
