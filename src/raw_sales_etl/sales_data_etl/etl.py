@@ -362,21 +362,24 @@ def join_venue_operational_stats(df_input: pd.DataFrame) -> pd.DataFrame:
     return df_output_v1
 
 
-def country_level_holiday_factors(df_input: pd.DataFrame, year: int) -> pd.DataFrame:
+def country_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output = df_input.copy()
+    # Use iso 3166-1 alpha 2 code to avoid any discrepancy in country names
     df_hol_scaling = (
-        df_input[(~df_input["holiday_name_v1"].isna()) & (df_input["year"] == year)]
-        .groupby(by=["holiday_name_v1", "cc"])
+        df_input[(~df_input["holiday_name_v1"].isna())]
+        .groupby(by=["holiday_name_v1", "cc", "year"])
         .agg({"7_day_forecast_real_error": ["median"]})
         .droplevel(0, 1)[["median"]]
         .reset_index()
         .dropna()
-        .rename(columns={"median": f"raw_holiday_scaling_factor_country_median"})
+        .rename(columns={"median": "raw_holiday_scaling_factor_country_median"})
     )
+    # Increment year to ensure join previous year sf to year after
+    df_hol_scaling["year"] = df_hol_scaling["year"] + 1
     df_output_v1 = df_output.merge(
         df_hol_scaling,
-        left_on=["cc", "holiday_name_v1"],
-        right_on=["cc", "holiday_name_v1"],
+        left_on=["cc", "holiday_name_v1", "year"],
+        right_on=["cc", "holiday_name_v1", "year"],
         how="left",
     )
     df_output_v1.index = df_output.index
@@ -395,8 +398,8 @@ def brand_level_holiday_factors(df_input: pd.DataFrame, year: int) -> pd.DataFra
         .dropna()
         .rename(
             columns={
-                "mean": f"raw_holiday_scaling_factor_brand_mean",
-                "median": f"raw_holiday_scaling_factor_brand_median",
+                "mean": "raw_holiday_scaling_factor_brand_mean",
+                "median": "raw_holiday_scaling_factor_brand_median",
             }
         )
     )
@@ -543,7 +546,7 @@ def etl_pipeline(
     )
     df_output["date_column"] = df_output.index
     df_output = join_venue_operational_stats(df_output)
-    df_output = country_level_holiday_factors(df_output, 2022)
+    df_output = country_level_holiday_factors(df_output)
     df_output = brand_level_holiday_factors(df_output, 2022)
     df_output = branch_level_holiday_factors(df_output, [2021, 2022])
     df_output = adjust_forecast_based_on_holidays(df_output)
