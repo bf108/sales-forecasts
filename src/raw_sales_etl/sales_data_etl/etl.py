@@ -5,6 +5,7 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+import reverse_geocoder as rg
 
 META_COLUMNS = [
     "_id",
@@ -365,7 +366,7 @@ def country_level_holiday_factors(df_input: pd.DataFrame, year: int) -> pd.DataF
     df_output = df_input.copy()
     df_hol_scaling = (
         df_input[(~df_input["holiday_name_v1"].isna()) & (df_input["year"] == year)]
-        .groupby(by=["holiday_name_v1", "country"])
+        .groupby(by=["holiday_name_v1", "cc"])
         .agg({"7_day_forecast_real_error": ["median"]})
         .droplevel(0, 1)[["median"]]
         .reset_index()
@@ -374,8 +375,8 @@ def country_level_holiday_factors(df_input: pd.DataFrame, year: int) -> pd.DataF
     )
     df_output_v1 = df_output.merge(
         df_hol_scaling,
-        left_on=["country", "holiday_name_v1"],
-        right_on=["country", "holiday_name_v1"],
+        left_on=["cc", "holiday_name_v1"],
+        right_on=["cc", "holiday_name_v1"],
         how="left",
     )
     df_output_v1.index = df_output.index
@@ -470,6 +471,37 @@ def adjust_forecast_based_on_holidays(
     return df_output
 
 
+def add_geo_data_columns_from_lon_lat(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+    # Country, Locality Data Join
+    row_list = []
+    for row in (
+        df_output[["unique_id", "coordinates.latitude", "coordinates.longitude"]]
+        .drop_duplicates()
+        .rename(columns={"coordinates.latitude": "lat", "coordinates.longitude": "lon"})
+        .itertuples()
+    ):
+        row_list.append({"unique_id": row.unique_id, "lat": row.lat, "lon": row.lon})
+
+    lon_lat = [(d["lat"], d["lon"]) for d in row_list]
+    results = rg.search(lon_lat)
+    res = results.copy()
+    lon_lat_res = []
+    for lld, r in zip(row_list, res):
+        tmp_dict = {k: v for k, v in r.items()}
+        tmp_dict.update({"unique_id": lld["unique_id"]})
+        lon_lat_res.append(tmp_dict)
+
+    df_lon_lat = pd.DataFrame(lon_lat_res)
+    df_lon_lat.loc[df_lon_lat["admin2"] == "", "admin2"] = None
+    df_lon_lat["locality"] = df_lon_lat["admin2"].combine_first(df_lon_lat["name"])
+    df_output_v1 = df_output.merge(
+        df_lon_lat, left_on=["unique_id"], right_on=["unique_id"], how="left"
+    )
+    df_output_v1.index = df_output.index
+    return df_output_v1
+
+
 def etl_pipeline(
     df_sales: pd.DataFrame,
     df_meta: pd.DataFrame,
@@ -481,6 +513,7 @@ def etl_pipeline(
     sales_adj_prc_th: float = None,
 ) -> pd.DataFrame:
     df_comb = merge_sales_meta(df_sales, unique_id_sales, df_meta, unique_id_meta)
+    df_comb = add_geo_data_columns_from_lon_lat(df_comb)
     unique_ids = get_unique_business_ids(df_comb, unique_id_sales)
     sales_adj_col = f"{sales_col}_adj"
     dfs_ls = []
