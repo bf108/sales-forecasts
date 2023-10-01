@@ -436,30 +436,26 @@ def brand_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     return df_output_v1
 
 
-def branch_level_holiday_factors(
-    df_input: pd.DataFrame, years: list[int]
-) -> pd.DataFrame:
+def branch_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output = df_input.copy()
     df_hol_scaling = (
-        df_output[
-            (~df_output["holiday_name_v1"].isna()) & (df_output["year"].between(*years))
-        ]
-        .groupby(by=["brandname", "branchname", "holiday_name_v1"])
-        .agg({"7_day_forecast_real_error": ["mean", "median"]})
-        .droplevel(0, 1)[["mean", "median"]]
+        df_output[(~df_output["holiday_name_v1"].isna())]
+        .groupby(by=["brandname", "branchname", "holiday_name_v1", "year"])
+        .agg({"7_day_forecast_real_error": ["mean"]})
+        .droplevel(0, 1)[["mean"]]
         .reset_index()
         .dropna()
         .rename(
             columns={
-                "mean": "raw_holiday_scaling_factor_branch_mean",
-                "median": "raw_holiday_scaling_factor_branch_median",
+                "mean": "raw_holiday_scaling_factor_branch",
             }
         )
     )
+    df_hol_scaling["year"] = df_hol_scaling["year"] + 1
     df_output_v1 = df_output.merge(
         df_hol_scaling,
-        left_on=["brandname", "branchname", "holiday_name_v1"],
-        right_on=["brandname", "branchname", "holiday_name_v1"],
+        left_on=["brandname", "branchname", "holiday_name_v1", "year"],
+        right_on=["brandname", "branchname", "holiday_name_v1", "year"],
         how="left",
     )
     df_output_v1.index = df_output.index
@@ -572,6 +568,6 @@ def etl_pipeline(
     df_output = country_level_holiday_factors(df_output)
     df_output = locality_level_holiday_factors(df_output)
     df_output = brand_level_holiday_factors(df_output)
-    df_output = branch_level_holiday_factors(df_output, [2021, 2022])
+    df_output = branch_level_holiday_factors(df_output)
     df_output = adjust_forecast_based_on_holidays(df_output)
     return df_output
