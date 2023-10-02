@@ -114,7 +114,9 @@ def join_list_of_df(dfs: list[pd.DataFrame], how: str = "outer") -> pd.DataFrame
     )
 
 
-def create_combined_holidays_df(countries: list[str], years: list[int]) -> pd.DataFrame:
+def create_combined_holidays_df(
+    *, countries: list[str], years: list[int]
+) -> pd.DataFrame:
     holidays_dfs = []
     for country in countries:
         tmp_dfs = []
