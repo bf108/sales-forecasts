@@ -1,0 +1,13 @@
+beautifulsoup4
+geographiclib
+ipykernel
+matplotlib
+mypy
+pandas
+pip-chill
+pylint
+requests
+reverse-geocoder
+scikit-learn
+sklearn
+tox
