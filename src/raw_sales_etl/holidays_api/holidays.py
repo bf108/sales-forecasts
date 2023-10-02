@@ -133,9 +133,9 @@ def create_combined_holidays_df(
 def add_valentines_ireland(df_input: pd.DataFrame, years: list[int]) -> pd.DataFrame:
     df_output = df_input.copy()
     ireland_val = []
-    for y in years:
+    for year in years:
         tmp_dict = {
-            "date": date(y, 2, 14),
+            "date": date(year, 2, 14),
             "holiday_name": "Valentines Day",
             "country": "ireland",
             "flag_holiday": True,
