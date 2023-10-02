@@ -525,6 +525,7 @@ def add_geo_data_columns_from_lon_lat(df_input: pd.DataFrame) -> pd.DataFrame:
 
 
 def etl_pipeline(
+    *,
     df_sales: pd.DataFrame,
     df_meta: pd.DataFrame,
     df_hols: pd.DataFrame,
