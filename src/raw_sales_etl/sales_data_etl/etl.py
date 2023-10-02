@@ -228,7 +228,7 @@ def x_day_forecast(df_input: pd.DataFrame, x: int, suffix: str = None):
         output_col = f"{x_cp}_day_forecast"
     else:
         cols = [f"sales_{(i*7)+x}_days_prior_{suffix}" for i in range(4)]
-        input_col_prefix = f"{x_cp}_day_forecast_input_{suffix}"
+        input_col_prefix = f"{x_cp}_day_forecast_input_{suffix}_"
         output_col = f"{x_cp}_day_forecast_{suffix}"
     while x >= 7:
         if counter > 0:
@@ -482,14 +482,15 @@ def adjust_forecast_based_on_holidays(
         for day in [7, 14, 21, 28]:
             df_output = x_day_forecast(df_output, day, suffix=sf_suffix)
 
-        df_output = create_eval_metric_columns(
-            df_output, "y_adj", 0.05, suffix=sf_suffix
-        )
         # Apply holiday scaling
         for day in [7, 14, 21, 28]:
             df_output[f"{day}_day_forecast_{sf_suffix}"] = (
                 df_output[f"{day}_day_forecast_{sf_suffix}"] * df_output[forecast_sf]
             )
+
+        df_output = create_eval_metric_columns(
+            df_output, "y_adj", 0.05, suffix=sf_suffix
+        )
     return df_output
 
 
