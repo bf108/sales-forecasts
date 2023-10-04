@@ -110,7 +110,7 @@ def join_hols_to_sales_history_calendar(
 ) -> pd.DataFrame:
     df_output = (
         df_sales.set_index("country", append=True)
-        .join(df_hols.set_index("country", append=True), how="left")
+        .join(df_hols, how="left")
         .reset_index()
         .set_index("date")
     )
