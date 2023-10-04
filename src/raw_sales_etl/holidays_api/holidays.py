@@ -16,7 +16,7 @@ HOLIDAY_GRANULARITY = {
     313: "Holidays and many observances",
     13759295: "All holidays/observances/religious events",
 }
-CALENDAR_META = {"uk": 4194329, "ireland": 281, "malta": 25}
+CALENDAR_META = {"uk": 4194329, "ireland": 4194329, "malta": 4194329}
 IMPORTANT_DAYS = [
     "Boxing Day",
     "Christmas Day",
@@ -96,10 +96,16 @@ def create_country_holidays_df(country: str, year: int) -> pd.DataFrame:
             row_dict[heading] = value.text
         res.append(row_dict)
     df_holiday_table = pd.DataFrame(res)
+    df_holiday_table.set_index("date", inplace=True)
+    df_holiday_table = normalize_text(df_holiday_table)
+    df_holiday_table = form_unique_holiday_name(df_holiday_table)
     df_holiday_table.loc[:, "flag_holiday"] = True
     df_holiday_table.loc[:, "country"] = country
-    df_holiday_table.drop(columns=["holiday_dow"], inplace=True)
-    df_holiday_table.set_index("date", inplace=True)
+    df_holiday_table.drop(
+        columns=["holiday_dow", "holiday_type", "holiday_details"],
+        inplace=True,
+        errors="ignore",
+    )
     return df_holiday_table[~df_holiday_table.index.duplicated()]
 
 
@@ -112,22 +118,6 @@ def join_list_of_df(dfs: list[pd.DataFrame], how: str = "outer") -> pd.DataFrame
         "dfs[0]"
         + "".join([f".join(dfs[{i+1}], how='{how}')" for i, _ in enumerate(dfs[1:])])
     )
-
-
-def create_combined_holidays_df(
-    *, countries: list[str], years: list[int]
-) -> pd.DataFrame:
-    holidays_dfs = []
-    for country in countries:
-        tmp_dfs = []
-        for year in years:
-            tmp_dfs.append(create_country_holidays_df(country, year))
-        tmp_df = pd.concat(tmp_dfs, axis=0)
-        holidays_dfs.append(tmp_df)
-    df_combined = pd.concat(holidays_dfs, axis=0)
-    df_combined = clean_up_holidays_df(df_combined)
-    df_combined = add_valentines_ireland(df_combined, years)
-    return df_combined
 
 
 def add_valentines_ireland(df_input: pd.DataFrame, years: list[int]) -> pd.DataFrame:
@@ -146,6 +136,34 @@ def add_valentines_ireland(df_input: pd.DataFrame, years: list[int]) -> pd.DataF
     df_tmp["date"] = pd.to_datetime(df_tmp["date"])
     df_tmp.set_index("date", inplace=True)
     df_output = pd.concat([df_output, df_tmp])
+    return df_output
+
+
+def form_unique_holiday_name(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+    for c in df_output.columns:
+        if c not in ["date", "holiday_name", "holiday_dow"]:
+            df_output["holiday_name"] = df_output["holiday_name"].str.cat(
+                df_output[c], sep="_"
+            )
+    df_output["holiday_name"] = df_output["holiday_name"].str.rstrip("_")
+    return df_output
+
+
+def normalize_text(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+    for c in df_output.columns:
+        if c != "date":
+            df_output[c] = (
+                df_output[c]
+                .str.replace(" ", "_")
+                .str.replace(".", "")
+                .str.replace("'", "")
+                .str.replace("`", "")
+                .str.replace(",", "")
+                .str.lower()
+                .str.strip()
+            )
     return df_output
 
 
@@ -206,3 +224,63 @@ def join_holidays_df_to_calendar_df(
             f"holiday_name_{country}"
         ].shift(periods=-1)
     return df_new
+
+
+def create_lead_up_days(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+    df_output.reset_index(inplace=True)
+    df_output["dow_int"] = df_output["date"].dt.dayofweek
+
+    df_monday = df_output[df_output["dow_int"] == 0].reset_index(drop=True).copy()
+    day_dict_monday = {
+        "sunday": {"days_offset": 1, "prefix": "sunday_prior_to_", "dow": 6},
+        "saturday": {"days_offset": 2, "prefix": "saturday_prior_to_", "dow": 5},
+        "friday": {"days_offset": 3, "prefix": "friday_prior_to_", "dow": 4},
+    }
+    dfs = []
+    for k, v in day_dict_monday.items():
+        df_tmp = df_monday.copy()
+        df_tmp["date"] = df_tmp["date"] - pd.Timedelta(days=v["days_offset"])
+        df_tmp["dow_int"] = v["dow"]
+        df_tmp["holiday_name"] = v["prefix"] + df_tmp["holiday_name"]
+        dfs.append(df_tmp)
+    df_lead_up_monday = pd.concat(dfs)
+
+    df_friday = df_output[df_output["dow_int"] == 4].reset_index(drop=True).copy()
+    day_dict_friday = {
+        "thursday": {"days_offset": 1, "prefix": "thursday_prior_to_", "dow": 3},
+    }
+    dfs = []
+    for k, v in day_dict_friday.items():
+        df_tmp = df_friday.copy()
+        df_tmp["date"] = df_tmp["date"] - pd.Timedelta(days=v["days_offset"])
+        df_tmp["dow_int"] = v["dow"]
+        df_tmp["holiday_name"] = v["prefix"] + df_tmp["holiday_name"]
+        dfs.append(df_tmp)
+    df_lead_up_friday = pd.concat(dfs)
+
+    df_output_v1 = pd.concat([df_output, df_lead_up_monday, df_lead_up_friday])
+    df_output_v1 = (
+        df_output_v1.drop_duplicates(subset=["date", "country"])
+        .sort_values(by=["date"])
+        .reset_index(drop=True)
+    )
+    return df_output_v1
+
+
+def create_combined_holidays_df(
+    *, countries: list[str], years: list[int]
+) -> pd.DataFrame:
+    holidays_dfs = []
+    for country in countries:
+        tmp_dfs = []
+        for year in years:
+            tmp_dfs.append(create_country_holidays_df(country, year))
+        tmp_df = pd.concat(tmp_dfs, axis=0)
+        holidays_dfs.append(tmp_df)
+    df_combined = pd.concat(holidays_dfs, axis=0)
+    df_combined = create_lead_up_days(df_combined)
+    df_combined.set_index("date", inplace=True)
+    # df_combined = clean_up_holidays_df(df_combined)
+    # df_combined = add_valentines_ireland(df_combined, years)
+    return df_combined
