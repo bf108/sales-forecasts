@@ -300,8 +300,8 @@ def country_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output = df_input.copy()
     # Use iso 3166-1 alpha 2 code to avoid any discrepancy in country names
     df_hol_scaling = (
-        df_input[(~df_input["holiday_name_v1"].isna())]
-        .groupby(by=["holiday_name_v1", "cc", "year"])
+        df_input[(~df_input["holiday_name"].isna())]
+        .groupby(by=["holiday_name", "cc", "year"])
         .agg({"7_day_forecast_real_error": ["median"]})
         .droplevel(0, 1)[["median"]]
         .reset_index()
@@ -312,8 +312,8 @@ def country_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     df_hol_scaling["year"] = df_hol_scaling["year"] + 1
     df_output_v1 = df_output.merge(
         df_hol_scaling,
-        left_on=["cc", "holiday_name_v1", "year"],
-        right_on=["cc", "holiday_name_v1", "year"],
+        left_on=["cc", "holiday_name", "year"],
+        right_on=["cc", "holiday_name", "year"],
         how="left",
     )
     df_output_v1.index = df_output.index
@@ -323,8 +323,8 @@ def country_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
 def locality_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output = df_input.copy()
     df_hol_scaling = (
-        df_input[(~df_input["holiday_name_v1"].isna())]
-        .groupby(by=["holiday_name_v1", "locality", "year"])
+        df_input[(~df_input["holiday_name"].isna())]
+        .groupby(by=["holiday_name", "locality", "year"])
         .agg({"7_day_forecast_real_error": ["median"]})
         .droplevel(0, 1)[["median"]]
         .reset_index()
@@ -335,8 +335,8 @@ def locality_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     df_hol_scaling["year"] = df_hol_scaling["year"] + 1
     df_output_v1 = df_output.merge(
         df_hol_scaling,
-        left_on=["locality", "holiday_name_v1", "year"],
-        right_on=["locality", "holiday_name_v1", "year"],
+        left_on=["locality", "holiday_name", "year"],
+        right_on=["locality", "holiday_name", "year"],
         how="left",
     )
     df_output_v1.index = df_output.index
@@ -346,8 +346,8 @@ def locality_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
 def brand_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output = df_input.copy()
     df_hol_scaling = (
-        df_output[(~df_output["holiday_name_v1"].isna())]
-        .groupby(by=["brandname", "holiday_name_v1", "year"])
+        df_output[(~df_output["holiday_name"].isna())]
+        .groupby(by=["brandname", "holiday_name", "year"])
         .agg({"7_day_forecast_real_error": ["mean", "median"]})
         .droplevel(0, 1)[["mean", "median"]]
         .reset_index()
@@ -362,8 +362,8 @@ def brand_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     df_hol_scaling["year"] = df_hol_scaling["year"] + 1
     df_output_v1 = df_output.merge(
         df_hol_scaling,
-        left_on=["brandname", "holiday_name_v1", "year"],
-        right_on=["brandname", "holiday_name_v1", "year"],
+        left_on=["brandname", "holiday_name", "year"],
+        right_on=["brandname", "holiday_name", "year"],
         how="left",
     )
     df_output_v1.index = df_output.index
@@ -373,8 +373,8 @@ def brand_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
 def branch_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output = df_input.copy()
     df_hol_scaling = (
-        df_output[(~df_output["holiday_name_v1"].isna())]
-        .groupby(by=["brandname", "branchname", "holiday_name_v1", "year"])
+        df_output[(~df_output["holiday_name"].isna())]
+        .groupby(by=["brandname", "branchname", "holiday_name", "year"])
         .agg({"7_day_forecast_real_error": ["mean"]})
         .droplevel(0, 1)[["mean"]]
         .reset_index()
@@ -388,8 +388,8 @@ def branch_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     df_hol_scaling["year"] = df_hol_scaling["year"] + 1
     df_output_v1 = df_output.merge(
         df_hol_scaling,
-        left_on=["brandname", "branchname", "holiday_name_v1", "year"],
-        right_on=["brandname", "branchname", "holiday_name_v1", "year"],
+        left_on=["brandname", "branchname", "holiday_name", "year"],
+        right_on=["brandname", "branchname", "holiday_name", "year"],
         how="left",
     )
     df_output_v1.index = df_output.index
