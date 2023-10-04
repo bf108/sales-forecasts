@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import country_converter as coco
 import pandas as pd
 import requests  # type: ignore
 from bs4 import BeautifulSoup as bs
@@ -175,6 +176,15 @@ def create_lead_up_days(df_input: pd.DataFrame) -> pd.DataFrame:
     return df_output_v1
 
 
+def convert_country_name_to_iso3166_alpha_2(df_input: pd.DataFrame) -> pd.DataFrame:
+    converter = coco.CountryConverter()
+    df_output = df_input.copy()
+    df_output["cc"] = df_output["country"].apply(
+        lambda x: converter.convert(x, to="iso2"), axis=1
+    )
+    return df_output
+
+
 def create_combined_holidays_df(
     *, countries: list[str], years: list[int]
 ) -> pd.DataFrame:
@@ -187,6 +197,7 @@ def create_combined_holidays_df(
         holidays_dfs.append(tmp_df)
     df_combined = pd.concat(holidays_dfs, axis=0)
     df_combined = create_lead_up_days(df_combined)
-    df_combined.set_index(["date", "country"], inplace=True)
+    df_combined = convert_country_name_to_iso3166_alpha_2(df_combined)
+    df_combined.set_index(["date", "cc"], inplace=True)
     df_combined.drop(columns=["dow_int"], inplace=True)
     return df_combined
