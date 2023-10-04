@@ -125,74 +125,6 @@ def determine_day(holiday_flag: bool, lead_up_flag: bool) -> str:
     return "normal"
 
 
-def create_lead_up_columns(df_input: pd.DataFrame) -> pd.DataFrame:
-    df_output = df_input.copy()
-    df_output["date_column_bhw"] = df_output.index
-    df_output["dow_int"] = df_output["date_column_bhw"].dt.dayofweek
-    df_output.loc[df_output["flag_holiday"].isna(), "flag_holiday"] = False
-    df_output["flag_lead_up_holiday"] = df_output["flag_holiday"].shift(periods=-1)
-    df_output["lead_up_holiday_name"] = (
-        df_output["holiday_name"].shift(periods=-1).fillna("")
-    )
-    df_output["three_day_shift"] = df_output["flag_holiday"].shift(periods=-3)
-    df_output["three_day_shift_name"] = (
-        df_output["holiday_name"].shift(periods=-3).fillna("")
-    )
-    df_output["two_day_shift"] = df_output["flag_holiday"].shift(periods=-2)
-    df_output["two_day_shift_name"] = (
-        df_output["holiday_name"].shift(periods=-2).fillna("")
-    )
-    df_output["bank_holiday_weekend_name_thurs_prior"] = df_output.apply(
-        lambda x: f"thur_prior_to_{x['lead_up_holiday_name']}"
-        if (
-            (x["dow_int"] == 3)
-            and (x["flag_lead_up_holiday"] == True)
-            and (not x["lead_up_holiday_name"].startswith("Valentine"))
-        )
-        else None,
-        axis=1,
-    )
-    df_output["bank_holiday_weekend_name_fri_prior"] = df_output.apply(
-        lambda x: f"fri_prior_to_{x['three_day_shift_name']}"
-        if (
-            (x["dow_int"] == 4)
-            and (x["three_day_shift"] == True)
-            and (not x["three_day_shift_name"].startswith("Valentine"))
-        )
-        else None,
-        axis=1,
-    )
-    df_output["bank_holiday_weekend_name_sat_prior"] = df_output.apply(
-        lambda x: f"sat_prior_to_{x['two_day_shift_name']}"
-        if (
-            (x["dow_int"] == 5)
-            and (x["two_day_shift"] == True)
-            and (not x["two_day_shift_name"].startswith("Valentine"))
-        )
-        else None,
-        axis=1,
-    )
-    df_output["bank_holiday_weekend_name_sun_prior"] = df_output.apply(
-        lambda x: f"sun_prior_to_{x['lead_up_holiday_name']}"
-        if (
-            (x["dow_int"] == 6)
-            and (x["flag_lead_up_holiday"] == True)
-            and (not x["lead_up_holiday_name"].startswith("Valentine"))
-        )
-        else None,
-        axis=1,
-    )
-    df_output["holiday_name_v1"] = (
-        df_output["holiday_name"]
-        .combine_first(df_output["bank_holiday_weekend_name_thurs_prior"])
-        .combine_first(df_output["bank_holiday_weekend_name_fri_prior"])
-        .combine_first(df_output["bank_holiday_weekend_name_sat_prior"])
-        .combine_first(df_output["bank_holiday_weekend_name_sun_prior"])
-    )
-
-    return df_output
-
-
 def get_last_7_weeks_sales_per_day(
     df_input: pd.DataFrame, sales_col: str, suffix: str = None
 ) -> pd.DataFrame:
@@ -548,7 +480,6 @@ def etl_pipeline(
         df_comb_ = df_comb[df_comb[unique_id_sales] == id_].copy()
         df_comb_ = join_calendar_to_sales_history(df_comb_, df_calendar)
         df_comb_ = join_hols_to_sales_history_calendar(df_comb_, df_hols)
-        df_comb_ = create_lead_up_columns(df_comb_)
         df_comb_ = zero_negative_sales(df_comb_, sales_col)
         df_comb_ = get_last_7_weeks_sales_per_day(df_comb_, sales_adj_col)
         df_comb_ = flag_14_out_of_28_days_sales_history(df_comb_, sales_adj_col)
