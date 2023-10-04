@@ -126,7 +126,7 @@ def determine_day(holiday_flag: bool, lead_up_flag: bool) -> str:
 
 
 def get_last_7_weeks_sales_per_day(
-    df_input: pd.DataFrame, sales_col: str, suffix: str = None
+    df_input: pd.DataFrame, sales_col: str, suffix: str | None = None
 ) -> pd.DataFrame:
     df_output = df_input.copy()
     for day in [7, 14, 21, 28, 35, 42, 49]:
@@ -149,7 +149,9 @@ def flag_14_out_of_28_days_sales_history(
     return df_output
 
 
-def x_day_forecast(df_input: pd.DataFrame, x: int, suffix: str = None):
+def x_day_forecast(
+    df_input: pd.DataFrame, x: int, suffix: str | None = None
+) -> pd.DataFrame:
     df_output = df_input.copy()
     x_cp = x
     counter = 0
@@ -181,7 +183,7 @@ def create_eval_metric_columns(
     df_input: pd.DataFrame,
     sales_adj_col: str,
     sales_adj_prc_th: float,
-    suffix: str = None,
+    suffix: str | None = None,
 ) -> pd.DataFrame:
     df_output = df_input.copy()
     for day in [7, 14, 21, 28]:
@@ -466,7 +468,7 @@ def etl_pipeline(
     unique_id_sales: str,
     unique_id_meta: str,
     sales_col: str,
-    sales_adj_prc_th: float = None,
+    sales_adj_prc_th: float|None = None,
 ) -> pd.DataFrame:
     df_comb = merge_sales_meta(df_sales, unique_id_sales, df_meta, unique_id_meta)
     df_comb = add_geo_data_columns_from_lon_lat(df_comb)
@@ -490,12 +492,6 @@ def etl_pipeline(
         dfs_ls.append(df_comb_)
     df_output = pd.concat(dfs_ls, axis=0)
     df_output = add_year_month_day_columns(df_output)
-    df_output["holiday_name_v1"] = (
-        df_output["holiday_name_v1"]
-        .str.replace(" ", "_")
-        .str.replace(".", "")
-        .str.lower()
-    )
     df_output["date_column"] = df_output.index
     df_output = join_venue_operational_stats(df_output)
     df_output = country_level_holiday_factors(df_output)
