@@ -187,5 +187,6 @@ def create_combined_holidays_df(
         holidays_dfs.append(tmp_df)
     df_combined = pd.concat(holidays_dfs, axis=0)
     df_combined = create_lead_up_days(df_combined)
-    df_combined.set_index("date", inplace=True)
+    df_combined.set_index(["date", "country"], inplace=True)
+    df_combined.drop(columns=["dow_int"], inplace=True)
     return df_combined
