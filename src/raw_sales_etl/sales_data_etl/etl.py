@@ -468,7 +468,7 @@ def etl_pipeline(
     unique_id_sales: str,
     unique_id_meta: str,
     sales_col: str,
-    sales_adj_prc_th: float|None = None,
+    sales_adj_prc_th: float | None = None,
 ) -> pd.DataFrame:
     df_comb = merge_sales_meta(df_sales, unique_id_sales, df_meta, unique_id_meta)
     df_comb = add_geo_data_columns_from_lon_lat(df_comb)
