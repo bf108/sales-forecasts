@@ -181,10 +181,8 @@ def create_lead_up_days(df_input: pd.DataFrame) -> pd.DataFrame:
 def convert_country_name_to_iso3166_alpha_2(df_input: pd.DataFrame) -> pd.DataFrame:
     converter = coco.CountryConverter()
     df_output = df_input.copy()
-    df_output["cc"] = (
-        df_output["country"]
-        .apply(lambda x: converter.convert(x, to="iso2"))
-        .str.lower()
+    df_output["cc"] = df_output["country"].apply(
+        lambda x: converter.convert(x, to="iso2")
     )
     return df_output
 
@@ -203,5 +201,5 @@ def create_combined_holidays_df(
     df_combined = create_lead_up_days(df_combined)
     df_combined = convert_country_name_to_iso3166_alpha_2(df_combined)
     df_combined.set_index(["date", "cc"], inplace=True)
-    df_combined.drop(columns=["dow_int"], inplace=True)
+    df_combined.drop(columns=["dow_int", "country"], inplace=True)
     return df_combined
