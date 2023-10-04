@@ -61,13 +61,15 @@ def create_country_holidays_df(country: str, year: int) -> pd.DataFrame:
     res = []
     # Find table of holidays in html
     # iterate through rows of table and extract content
-    for row in (
-        soup.find(id="holidays-table").find("tbody").find_all("tr", class_="showrow")
-    ):
-        row_dict = {"date": convert_ms_unix_timestamp_to_datatime(row["data-date"])}
-        for value, heading in zip(row.find_all("td"), table_headings[1:]):
-            row_dict[heading] = value.text
-        res.append(row_dict)
+    # soup.find(id="holidays-table").find("tbody").find_all("tr", class_="showrow")
+    for row in soup.find(id="holidays-table").find("tbody").find_all("tr"):
+        try:
+            row_dict = {"date": convert_ms_unix_timestamp_to_datatime(row["data-date"])}
+            for value, heading in zip(row.find_all("td"), table_headings[1:]):
+                row_dict[heading] = value.text
+            res.append(row_dict)
+        except:
+            pass
     df_holiday_table = pd.DataFrame(res)
     df_holiday_table.set_index("date", inplace=True)
     df_holiday_table = normalize_text(df_holiday_table)
@@ -179,8 +181,10 @@ def create_lead_up_days(df_input: pd.DataFrame) -> pd.DataFrame:
 def convert_country_name_to_iso3166_alpha_2(df_input: pd.DataFrame) -> pd.DataFrame:
     converter = coco.CountryConverter()
     df_output = df_input.copy()
-    df_output["cc"] = df_output["country"].apply(
-        lambda x: converter.convert(x, to="iso2"), axis=1
+    df_output["cc"] = (
+        df_output["country"]
+        .apply(lambda x: converter.convert(x, to="iso2"))
+        .str.lower()
     )
     return df_output
 
