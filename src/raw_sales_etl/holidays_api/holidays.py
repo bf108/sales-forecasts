@@ -106,6 +106,7 @@ def normalize_text(df_input: pd.DataFrame) -> pd.DataFrame:
                 .str.replace("'", "")
                 .str.replace("`", "")
                 .str.replace(",", "")
+                .str.replace("’", "")
                 .str.lower()
                 .str.strip()
             )
