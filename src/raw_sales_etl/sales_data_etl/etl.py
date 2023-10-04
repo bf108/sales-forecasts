@@ -59,7 +59,6 @@ def merge_sales_meta(
         .rename(columns={"ds": "date"})
         .set_index("date")
     )
-    df_comb.loc[:, "country"] = df_comb.country.str.lower()
     df_comb.loc[:, "operational_flag"] = True
     df_comb["y"] = df_comb["y"].astype("float")
     return df_comb
