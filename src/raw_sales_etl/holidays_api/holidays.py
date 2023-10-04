@@ -1,5 +1,3 @@
-from ast import literal_eval
-from datetime import date
 from datetime import datetime
 
 import pandas as pd
@@ -17,32 +15,6 @@ HOLIDAY_GRANULARITY = {
     13759295: "All holidays/observances/religious events",
 }
 CALENDAR_META = {"uk": 4194329, "ireland": 4194329, "malta": 4194329}
-IMPORTANT_DAYS = [
-    "Boxing Day",
-    "Christmas Day",
-    "Christmas Eve",
-    "Day off for New Years Day",
-    "Early August Bank Holiday",
-    "Early May Bank Holiday",
-    "Easter Monday",
-    "Easter Sunday",
-    "Fathers Day",
-    "Good Friday",
-    "June Bank Holiday",
-    "Late August Bank Holiday",
-    "Mothers Day",
-    "New Years Day",
-    "New Years Day observed",
-    "New Years Eve",
-    "October Bank Holiday",
-    "Public Holiday",
-    "Spring Bank Holiday",
-    "St. Brigids Day",
-    "St. Patricks Day",
-    "Substitute Bank Holiday for Boxing Day",
-    "Substitute Bank Holiday for Christmas Day",
-    "Valentines Day",
-]
 
 
 def convert_ms_unix_timestamp_to_datatime(unix_timestamp: str) -> datetime:
@@ -109,42 +81,12 @@ def create_country_holidays_df(country: str, year: int) -> pd.DataFrame:
     return df_holiday_table[~df_holiday_table.index.duplicated()]
 
 
-def join_list_of_df(dfs: list[pd.DataFrame], how: str = "outer") -> pd.DataFrame:
-    if len(dfs) == 0:
-        raise ValueError("Empty list of DataFrames Passed")
-    if len(dfs) == 1:
-        return dfs[0]
-    return literal_eval(
-        "dfs[0]"
-        + "".join([f".join(dfs[{i+1}], how='{how}')" for i, _ in enumerate(dfs[1:])])
-    )
-
-
-def add_valentines_ireland(df_input: pd.DataFrame, years: list[int]) -> pd.DataFrame:
-    df_output = df_input.copy()
-    ireland_val = []
-    for year in years:
-        tmp_dict = {
-            "date": date(year, 2, 14),
-            "holiday_name": "Valentines Day",
-            "country": "ireland",
-            "flag_holiday": True,
-        }
-        ireland_val.append(tmp_dict)
-
-    df_tmp = pd.DataFrame(ireland_val)
-    df_tmp["date"] = pd.to_datetime(df_tmp["date"])
-    df_tmp.set_index("date", inplace=True)
-    df_output = pd.concat([df_output, df_tmp])
-    return df_output
-
-
 def form_unique_holiday_name(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output = df_input.copy()
-    for c in df_output.columns:
-        if c not in ["date", "holiday_name", "holiday_dow"]:
+    for col in df_output.columns:
+        if col not in ["date", "holiday_name", "holiday_dow"]:
             df_output["holiday_name"] = df_output["holiday_name"].str.cat(
-                df_output[c], sep="_"
+                df_output[col], sep="_"
             )
     df_output["holiday_name"] = df_output["holiday_name"].str.rstrip("_")
     return df_output
@@ -152,10 +94,10 @@ def form_unique_holiday_name(df_input: pd.DataFrame) -> pd.DataFrame:
 
 def normalize_text(df_input: pd.DataFrame) -> pd.DataFrame:
     df_output = df_input.copy()
-    for c in df_output.columns:
-        if c != "date":
-            df_output[c] = (
-                df_output[c]
+    for col in df_output.columns:
+        if col != "date":
+            df_output[col] = (
+                df_output[col]
                 .str.replace(" ", "_")
                 .str.replace(".", "")
                 .str.replace("'", "")
@@ -164,41 +106,6 @@ def normalize_text(df_input: pd.DataFrame) -> pd.DataFrame:
                 .str.lower()
                 .str.strip()
             )
-    return df_output
-
-
-def clean_up_holidays_df(df_input: pd.DataFrame) -> pd.DataFrame:
-    df_output = df_input.copy()
-    scottish_bank_holidays = df_output[
-        (df_output["holiday_name"] == "Summer Bank Holiday")
-        & (df_output["holiday_details"] == "Scotland")
-    ].index
-    df_output.loc[scottish_bank_holidays, "holiday_name"] = "Early August Bank Holiday"
-    # Process holiday data
-    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
-        "'|’", "", regex=True
-    )
-    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
-        "Summer Bank Holiday", "Late August Bank Holiday", regex=True
-    )
-    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
-        "^August Bank Holiday$", "Early August Bank Holiday", regex=True
-    )
-    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
-        "^May Day$", "Early May Bank Holiday", regex=True
-    )
-    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
-        "^St. Stephens Day$", "Boxing Day", regex=True
-    )
-    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
-        " / VE Day", "", regex=True
-    )
-    df_output["holiday_name"] = df_output["holiday_name"].str.replace(
-        "^Easter$", "Easter Sunday", regex=True
-    )
-    df_output = df_output[(df_output["holiday_name"].isin(IMPORTANT_DAYS))].drop(
-        columns=["holiday_details", "holiday_type"]
-    )
     return df_output
 
 
@@ -238,11 +145,11 @@ def create_lead_up_days(df_input: pd.DataFrame) -> pd.DataFrame:
         "friday": {"days_offset": 3, "prefix": "friday_prior_to_", "dow": 4},
     }
     dfs = []
-    for k, v in day_dict_monday.items():
+    for _, val in day_dict_monday.items():
         df_tmp = df_monday.copy()
-        df_tmp["date"] = df_tmp["date"] - pd.Timedelta(days=v["days_offset"])
-        df_tmp["dow_int"] = v["dow"]
-        df_tmp["holiday_name"] = v["prefix"] + df_tmp["holiday_name"]
+        df_tmp["date"] = df_tmp["date"] - pd.Timedelta(days=val["days_offset"])
+        df_tmp["dow_int"] = val["dow"]
+        df_tmp["holiday_name"] = val["prefix"] + df_tmp["holiday_name"]
         dfs.append(df_tmp)
     df_lead_up_monday = pd.concat(dfs)
 
@@ -251,11 +158,11 @@ def create_lead_up_days(df_input: pd.DataFrame) -> pd.DataFrame:
         "thursday": {"days_offset": 1, "prefix": "thursday_prior_to_", "dow": 3},
     }
     dfs = []
-    for k, v in day_dict_friday.items():
+    for _, val in day_dict_friday.items():
         df_tmp = df_friday.copy()
-        df_tmp["date"] = df_tmp["date"] - pd.Timedelta(days=v["days_offset"])
-        df_tmp["dow_int"] = v["dow"]
-        df_tmp["holiday_name"] = v["prefix"] + df_tmp["holiday_name"]
+        df_tmp["date"] = df_tmp["date"] - pd.Timedelta(days=val["days_offset"])
+        df_tmp["dow_int"] = val["dow"]
+        df_tmp["holiday_name"] = val["prefix"] + df_tmp["holiday_name"]
         dfs.append(df_tmp)
     df_lead_up_friday = pd.concat(dfs)
 
@@ -281,6 +188,4 @@ def create_combined_holidays_df(
     df_combined = pd.concat(holidays_dfs, axis=0)
     df_combined = create_lead_up_days(df_combined)
     df_combined.set_index("date", inplace=True)
-    # df_combined = clean_up_holidays_df(df_combined)
-    # df_combined = add_valentines_ireland(df_combined, years)
     return df_combined
