@@ -74,7 +74,7 @@ def get_unique_business_ids(
 def zero_negative_sales(df_input: pd.DataFrame, sales_col: str) -> pd.DataFrame:
     df_output = df_input.copy()
     df_output.loc[:, f"{sales_col}_adj"] = df_output[sales_col]
-    df_output.loc[df_output[sales_col] < 0, f"{sales_col}_adj"] = 0
+    df_output.loc[df_output[sales_col] < 100, f"{sales_col}_adj"] = 0
     df_output[f"{sales_col}_adj"] = df_output[f"{sales_col}_adj"].astype("float")
     df_output[f"{sales_col}_adj"] = df_output[f"{sales_col}_adj"] + 0.01
     return df_output
@@ -205,6 +205,8 @@ def create_eval_metric_columns(
 
         df_output[n_day_eval_th] = df_output[n_day_forecast] * sales_adj_prc_th
         df_output[n_day_forecast_th] = df_output[n_day_forecast]
+        # df_output.loc[df_output[n_day_forecast] < 100, n_day_forecast_th] = np.nan
+        df_output.loc[df_output[sales_adj_col] <= df_output[n_day_eval_th], n_day_forecast_th] = np.nan
         df_output.loc[
             (df_output[sales_adj_col] < df_output[n_day_eval_th]), n_day_forecast_th
         ] = np.nan
@@ -497,5 +499,5 @@ def etl_pipeline(
     df_output = locality_level_holiday_factors(df_output)
     df_output = brand_level_holiday_factors(df_output)
     df_output = branch_level_holiday_factors(df_output)
-    df_output = adjust_forecast_based_on_holidays(df_output)
+    df_output = adjust_forecast_based_on_holidays(df_output, 0.75)
     return df_output
