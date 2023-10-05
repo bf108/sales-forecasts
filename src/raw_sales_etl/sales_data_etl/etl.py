@@ -206,7 +206,9 @@ def create_eval_metric_columns(
         df_output[n_day_eval_th] = df_output[n_day_forecast] * sales_adj_prc_th
         df_output[n_day_forecast_th] = df_output[n_day_forecast]
         # df_output.loc[df_output[n_day_forecast] < 100, n_day_forecast_th] = np.nan
-        df_output.loc[df_output[sales_adj_col] <= df_output[n_day_eval_th], n_day_forecast_th] = np.nan
+        df_output.loc[
+            df_output[sales_adj_col] <= df_output[n_day_eval_th], n_day_forecast_th
+        ] = np.nan
         df_output.loc[
             (df_output[sales_adj_col] < df_output[n_day_eval_th]), n_day_forecast_th
         ] = np.nan
@@ -460,6 +462,18 @@ def add_geo_data_columns_from_lon_lat(df_input: pd.DataFrame) -> pd.DataFrame:
     return df_output_v1
 
 
+def select_final_columns(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+    scaling_columns = [
+        col
+        for col in df_output.columns
+        if "_forecast_sf" in col or "_normalized_sf" in col
+    ]
+    meta_columns = ["unique_id", "holiday_name"]
+    df_output_v1 = df_output[meta_columns + scaling_columns].copy()
+    return df_output_v1
+
+
 def etl_pipeline(
     *,
     df_sales: pd.DataFrame,
@@ -500,4 +514,5 @@ def etl_pipeline(
     df_output = brand_level_holiday_factors(df_output)
     df_output = branch_level_holiday_factors(df_output)
     df_output = adjust_forecast_based_on_holidays(df_output, 0.75)
+    df_output = select_final_columns(df_output)
     return df_output
