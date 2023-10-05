@@ -484,6 +484,7 @@ def etl_pipeline(
     unique_id_meta: str,
     sales_col: str,
     sales_adj_prc_th: float | None = None,
+    holiday_scaling_factor_contribution: float | None = None,
 ) -> pd.DataFrame:
     df_comb = merge_sales_meta(df_sales, unique_id_sales, df_meta, unique_id_meta)
     df_comb = add_geo_data_columns_from_lon_lat(df_comb)
@@ -513,6 +514,8 @@ def etl_pipeline(
     df_output = locality_level_holiday_factors(df_output)
     df_output = brand_level_holiday_factors(df_output)
     df_output = branch_level_holiday_factors(df_output)
-    df_output = adjust_forecast_based_on_holidays(df_output, 0.75)
+    if not holiday_scaling_factor_contribution:
+        holiday_scaling_factor_contribution = 1
+    df_output = adjust_forecast_based_on_holidays(df_output, holiday_scaling_factor_contribution)
     df_output = select_final_columns(df_output)
     return df_output
