@@ -185,7 +185,7 @@ def create_eval_metric_columns(
     suffix: str | None = None,
 ) -> pd.DataFrame:
     df_output = df_input.copy()
-    for day in [7, 14, 21, 28]:
+    for day in [7]:
         if not suffix:
             n_day_forecast = f"{day}_day_forecast"
             n_day_eval_th = f"{day}_day_eval_threshold"
@@ -399,10 +399,12 @@ def branch_level_holiday_factors(df_input: pd.DataFrame) -> pd.DataFrame:
     return df_output_v1
 
 
-def adjust_forecast_based_on_holidays(
-    df_input: pd.DataFrame, prc: float = 1.0
+def create_scaling_factor_columns(
+    df_input: pd.DataFrame, prc: float | None = None
 ) -> pd.DataFrame:
     df_output = df_input.copy()
+    if not prc:
+        prc = 1
     sf_cols = [col for col in df_output.columns if "raw_holiday_scaling_factor" in col]
     for col in sf_cols:
         df_output[col] = df_output[col].fillna(0)
@@ -411,20 +413,31 @@ def adjust_forecast_based_on_holidays(
         normalize_sf = sf_suffix + "_normalized_sf"
         df_output[forecast_sf] = 1 / (1 - df_output[col] * prc)
         df_output[normalize_sf] = 1 - df_output[col] * prc
+    return df_output
+
+
+def adjust_forecast_based_on_holidays(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+
+    norm_cols = [col for col in df_output.columns if col.endswith("normalized_sf")]
+    forecast_cols = [col for col in df_output.columns if col.endswith("forecast_sf")]
+    for col in norm_cols:
+        sf_suffix = col.split("_normalized_sf")[0]
         normalized_sales = f"y_adj_{sf_suffix}"
-        df_output[normalized_sales] = df_output["y_adj"] * df_output[normalize_sf]
+        df_output[normalized_sales] = df_output["y_adj"] * df_output[col]
         df_output = get_last_7_weeks_sales_per_day(
             df_output, normalized_sales, suffix=sf_suffix
         )
         for day in [7, 14, 21, 28]:
             df_output = x_day_forecast(df_output, day, suffix=sf_suffix)
 
+    for col in forecast_cols:
+        sf_suffix = col.split("_forecast_sf")[0]
         # Apply holiday scaling
         for day in [7, 14, 21, 28]:
             df_output[f"{day}_day_forecast_{sf_suffix}"] = (
-                df_output[f"{day}_day_forecast_{sf_suffix}"] * df_output[forecast_sf]
+                df_output[f"{day}_day_forecast_{sf_suffix}"] * df_output[col]
             )
-
         df_output = create_eval_metric_columns(
             df_output, "y_adj", 0.05, suffix=sf_suffix
         )
@@ -469,8 +482,19 @@ def select_final_columns(df_input: pd.DataFrame) -> pd.DataFrame:
         for col in df_output.columns
         if "_forecast_sf" in col or "_normalized_sf" in col
     ]
-    meta_columns = ["unique_id", "holiday_name"]
+    meta_columns = ["unique_id", "holiday_name", "cc", "locality"]
     df_output_v1 = df_output[meta_columns + scaling_columns].copy()
+    return df_output_v1
+
+
+def subset_to_only_holidays(df_input: pd.DataFrame) -> pd.DataFrame:
+    df_output = df_input.copy()
+    scaling_columns = [
+        col
+        for col in df_output.columns
+        if "_forecast_sf" in col or "_normalized_sf" in col
+    ]
+    df_output_v1 = df_output[(df_output[scaling_columns] == 1).sum(axis=1) < 10].copy()
     return df_output_v1
 
 
@@ -501,21 +525,21 @@ def etl_pipeline(
         df_comb_ = zero_negative_sales(df_comb_, sales_col)
         df_comb_ = get_last_7_weeks_sales_per_day(df_comb_, sales_adj_col)
         df_comb_ = flag_14_out_of_28_days_sales_history(df_comb_, sales_adj_col)
-        for day in [7, 14, 21, 28]:
-            df_comb_ = x_day_forecast(df_comb_, day)
+        df_comb_ = x_day_forecast(df_comb_, 7)
         df_comb_ = create_eval_metric_columns(df_comb_, sales_adj_col, sales_adj_prc_th)
-        df_comb_ = operating_day_in_365_days(df_comb_)
         dfs_ls.append(df_comb_)
     df_output = pd.concat(dfs_ls, axis=0)
     df_output = add_year_month_day_columns(df_output)
     df_output["date_column"] = df_output.index
-    df_output = join_venue_operational_stats(df_output)
     df_output = country_level_holiday_factors(df_output)
     df_output = locality_level_holiday_factors(df_output)
     df_output = brand_level_holiday_factors(df_output)
     df_output = branch_level_holiday_factors(df_output)
     if not holiday_scaling_factor_contribution:
         holiday_scaling_factor_contribution = 1
-    df_output = adjust_forecast_based_on_holidays(df_output, holiday_scaling_factor_contribution)
+    df_output = create_scaling_factor_columns(
+        df_output, prc=holiday_scaling_factor_contribution
+    )
     df_output = select_final_columns(df_output)
+    df_output = subset_to_only_holidays(df_output)
     return df_output
